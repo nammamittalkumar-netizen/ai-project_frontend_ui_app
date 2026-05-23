@@ -78,7 +78,7 @@ class _SettingsToggleState extends State<_SettingsToggle> {
         Icon(widget.icon, color: Colors.grey, size: 20),
         const SizedBox(width: 12),
         Expanded(child: Text(widget.title, style: const TextStyle(color: Colors.white, fontSize: 13))),
-        Switch(value: _value, onChanged: (v) => setState(() => _value = v), activeColor: Colors.red),
+        Switch(value: _value, onChanged: (v) => setState(() => _value = v), activeThumbColor: Colors.red),
       ]),
     );
   }

@@ -15,17 +15,17 @@ class SettingsScreen extends StatelessWidget {
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
-        children: [
+        children: const [
           _SectionTitle('Server'),
-          _SettingsTile(icon: Icons.computer,  title: 'Mini PC IP',     subtitle: AppConfig.serverIP),
-          _SettingsTile(icon: Icons.api,        title: 'API Server',     subtitle: AppConfig.apiBase),
-          _SettingsTile(icon: Icons.videocam,   title: 'Stream Server',  subtitle: AppConfig.hlsBase),
-          const SizedBox(height: 24),
+          _SettingsTile(icon: Icons.computer, title: 'Mini PC IP', subtitle: AppConfig.serverIP),
+          _SettingsTile(icon: Icons.api, title: 'API Server', subtitle: AppConfig.apiBase),
+          _SettingsTile(icon: Icons.videocam, title: 'Stream Server', subtitle: AppConfig.hlsBase),
+          SizedBox(height: 24),
           _SectionTitle('Notifications'),
-          _SettingsToggle(title: 'Fire Detection',      icon: Icons.local_fire_department),
+          _SettingsToggle(title: 'Fire Detection', icon: Icons.local_fire_department),
           _SettingsToggle(title: 'Intrusion Detection', icon: Icons.directions_run),
-          _SettingsToggle(title: 'Unknown Face',        icon: Icons.face),
-          _SettingsToggle(title: 'Object Detection',    icon: Icons.warning),
+          _SettingsToggle(title: 'Unknown Face', icon: Icons.face),
+          _SettingsToggle(title: 'Object Detection', icon: Icons.warning),
         ],
       ),
     );
@@ -100,7 +100,7 @@ class _SettingsToggleState extends State<_SettingsToggle> {
         Switch(
           value: _value,
           onChanged: (v) => setState(() => _value = v),
-          activeColor: Colors.red,
+          activeThumbColor: Colors.red,
         ),
       ]),
     );

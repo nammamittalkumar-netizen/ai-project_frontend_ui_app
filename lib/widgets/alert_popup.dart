@@ -60,7 +60,7 @@ class _AlertPopupState extends State<AlertPopup> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: widget.alert.typeColor.withOpacity(0.2),
+                color: widget.alert.typeColor.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(widget.alert.typeIcon, color: widget.alert.typeColor, size: 28),
@@ -80,7 +80,7 @@ class _AlertPopupState extends State<AlertPopup> {
                 CircularProgressIndicator(
                   value: _secondsLeft / 5,
                   color: widget.alert.typeColor,
-                  backgroundColor: Colors.grey.withOpacity(0.2),
+                  backgroundColor: Colors.grey.withValues(alpha: 0.2),
                 ),
                 Text('$_secondsLeft',
                     style: const TextStyle(color: Colors.white, fontSize: 12,

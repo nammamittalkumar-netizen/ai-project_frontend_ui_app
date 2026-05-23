@@ -9,7 +9,7 @@ class AlertsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final alerts = ref.watch(alertsProvider);
+    final alertsAsync = ref.watch(alertsProvider);
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
       appBar: AppBar(
@@ -17,10 +17,16 @@ class AlertsScreen extends ConsumerWidget {
         title: const Text('Alerts',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(12),
-        itemCount: alerts.length,
-        itemBuilder: (ctx, i) => _AlertTile(alert: alerts[i]),
+      body: alertsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator(color: Colors.red)),
+        error: (e, _) => Center(child: Text('$e', style: const TextStyle(color: Colors.red))),
+        data: (alerts) => alerts.isEmpty
+            ? const Center(child: Text('No alerts', style: TextStyle(color: Colors.grey)))
+            : ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: alerts.length,
+                itemBuilder: (ctx, i) => _AlertTile(alert: alerts[i]),
+              ),
       ),
     );
   }
@@ -44,7 +50,7 @@ class _AlertTile extends StatelessWidget {
         Container(
           width: 40, height: 40,
           decoration: BoxDecoration(
-            color: alert.typeColor.withOpacity(0.15),
+              color: alert.typeColor.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(alert.typeIcon, color: alert.typeColor, size: 20),

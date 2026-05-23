@@ -21,7 +21,10 @@ class DashboardScreen extends ConsumerWidget {
         final lastSeenId = ref.read(lastAlertIdProvider);
         if (latest.id != lastSeenId) {
           ref.read(lastAlertIdProvider.notifier).state = latest.id;
-          Future.microtask(() => _showAlertPopup(context, latest));
+          Future.microtask(() {
+            if (!context.mounted) return;
+            _showAlertPopup(context, latest);
+          });
         }
       });
     });

@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.example.security_app"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -16,8 +16,8 @@ android {
 
     defaultConfig {
         applicationId = "com.example.security_app"
-        minSdk = 21
-        targetSdk = 35
+        minSdk = flutter.minSdkVersion
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -36,7 +36,7 @@ kotlin {
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools.build:desugaring:2.1.4")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
 
 flutter {

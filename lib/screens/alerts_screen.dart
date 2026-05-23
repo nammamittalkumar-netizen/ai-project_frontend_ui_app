@@ -56,7 +56,7 @@ class _AlertTile extends StatelessWidget {
           Container(
             width: 40, height: 40,
             decoration: BoxDecoration(
-              color: alert.typeColor.withOpacity(0.15),
+              color: alert.typeColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(alert.typeIcon, color: alert.typeColor, size: 20),

@@ -8,7 +8,7 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cameras = ref.watch(camerasProvider);
+    final camerasAsync = ref.watch(camerasProvider);
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
       appBar: AppBar(
@@ -24,13 +24,22 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(12),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2, crossAxisSpacing: 8, mainAxisSpacing: 8, childAspectRatio: 0.95,
-        ),
-        itemCount: cameras.length,
-        itemBuilder: (ctx, i) => _CameraCard(camera: cameras[i]),
+      body: camerasAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator(color: Colors.red)),
+        error: (e, _) => Center(child: Text('$e', style: const TextStyle(color: Colors.red))),
+        data: (cameras) => cameras.isEmpty
+            ? const Center(child: Text('No cameras found', style: TextStyle(color: Colors.grey)))
+            : GridView.builder(
+                padding: const EdgeInsets.all(12),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                  childAspectRatio: 0.95,
+                ),
+                itemCount: cameras.length,
+                itemBuilder: (ctx, i) => _CameraCard(camera: cameras[i]),
+              ),
       ),
     );
   }
