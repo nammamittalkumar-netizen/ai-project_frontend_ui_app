@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+
 import '../models/alert.dart';
 import '../providers/providers.dart';
 import '../widgets/alert_popup.dart';
@@ -11,23 +12,61 @@ class AlertsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final alertsAsync = ref.watch(alertsProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF111111),
-        title: const Text('Alerts',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+        title: const Text(
+          'Alerts',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
       ),
-      body: alertsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator(color: Colors.red)),
-        error:   (e, _) => Center(child: Text('$e', style: const TextStyle(color: Colors.red))),
-        data:    (alerts) => alerts.isEmpty
-            ? const Center(child: Text('No alerts', style: TextStyle(color: Colors.grey)))
-            : ListView.builder(
-                padding: const EdgeInsets.all(12),
-                itemCount: alerts.length,
-                itemBuilder: (ctx, i) => _AlertTile(alert: alerts[i]),
+      body: RefreshIndicator(
+        color: Colors.red,
+        backgroundColor: const Color(0xFF1A1A1A),
+        onRefresh: () async {
+          ref.invalidate(alertsProvider);
+          await ref.read(alertsProvider.future);
+        },
+        child: alertsAsync.when(
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: Colors.red),
+          ),
+          error: (error, _) => ListView(
+            children: [
+              SizedBox(height: MediaQuery.sizeOf(context).height * 0.35),
+              Center(
+                child: Text(
+                  '$error',
+                  style: const TextStyle(color: Colors.red),
+                ),
               ),
+            ],
+          ),
+          data: (alerts) {
+            if (alerts.isEmpty) {
+              return ListView(
+                children: [
+                  SizedBox(height: MediaQuery.sizeOf(context).height * 0.35),
+                  const Center(
+                    child: Text(
+                      'No alerts',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: alerts.length,
+              itemBuilder: (context, index) {
+                return _AlertTile(alert: alerts[index]);
+              },
+            );
+          },
+        ),
       ),
     );
   }
@@ -35,47 +74,88 @@ class AlertsScreen extends ConsumerWidget {
 
 class _AlertTile extends StatelessWidget {
   final Alert alert;
+
   const _AlertTile({required this.alert});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => showDialog(
-        context: context,
-        builder: (_) => AlertPopup(alert: alert),
-      ),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFF2A2A2A)),
-        ),
-        child: Row(children: [
-          Container(
-            width: 40, height: 40,
-            decoration: BoxDecoration(
-              color: alert.typeColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(alert.typeIcon, color: alert.typeColor, size: 20),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () {
+          showDialog<void>(
+            context: context,
+            builder: (_) => AlertPopup(alert: alert),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFF2A2A2A)),
           ),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(alert.typeLabel,
-                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
-            const SizedBox(height: 2),
-            Text(alert.cameraName,
-                style: const TextStyle(color: Colors.grey, fontSize: 11)),
-          ])),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text(DateFormat('hh:mm a').format(alert.timestamp),
-                style: const TextStyle(color: Colors.grey, fontSize: 11)),
-            const SizedBox(height: 4),
-            const Icon(Icons.play_circle_outline, color: Colors.grey, size: 20),
-          ]),
-        ]),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: alert.typeColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(alert.typeIcon, color: alert.typeColor, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      alert.typeLabelWithEmoji,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      alert.cameraName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    DateFormat('MMM d').format(alert.timestamp),
+                    style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    DateFormat('hh:mm a').format(alert.timestamp),
+                    style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.play_circle_outline_rounded,
+                color: Colors.grey,
+                size: 22,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

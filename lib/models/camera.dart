@@ -4,17 +4,19 @@ class Camera {
   final String location;
   final bool isOnline;
 
-  Camera({
+  const Camera({
     required this.id,
     required this.name,
     required this.location,
     required this.isOnline,
   });
 
-  factory Camera.fromJson(Map<String, dynamic> json) => Camera(
-    id:       json['id'],
-    name:     json['name'],
-    location: json['location'],
-    isOnline: json['is_online'] ?? false,
-  );
+  factory Camera.fromJson(Map<String, dynamic> json) {
+    return Camera(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'Unnamed Camera',
+      location: json['location']?.toString() ?? '',
+      isOnline: json['is_online'] == true,
+    );
+  }
 }

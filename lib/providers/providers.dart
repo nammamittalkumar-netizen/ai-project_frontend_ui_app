@@ -1,51 +1,235 @@
 import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/alert.dart';
 import '../models/camera.dart';
 import '../services/api_service.dart';
 
-// ── Settings state (server IPs) ──────────────────────────
+const int defaultApiPort = 8000;
+const int defaultStreamPort = 8888;
+
 class ServerConfig {
   final String apiUrl;
   final String streamUrl;
-  ServerConfig({
-    this.apiUrl    = 'http://192.168.1.100:8000',
-    this.streamUrl = 'http://192.168.1.100:8888',
+  final bool isDemo;
+
+  const ServerConfig({
+    required this.apiUrl,
+    required this.streamUrl,
+    this.isDemo = false,
   });
-  ServerConfig copyWith({String? apiUrl, String? streamUrl}) => ServerConfig(
-    apiUrl:    apiUrl    ?? this.apiUrl,
-    streamUrl: streamUrl ?? this.streamUrl,
-  );
-}
 
-final serverConfigProvider = StateNotifierProvider<ServerConfigNotifier, ServerConfig>(
-  (ref) => ServerConfigNotifier(),
-);
+  factory ServerConfig.empty() => const ServerConfig(apiUrl: '', streamUrl: '');
 
-class ServerConfigNotifier extends StateNotifier<ServerConfig> {
-  ServerConfigNotifier() : super(ServerConfig());
-  void update({String? apiUrl, String? streamUrl}) {
-    state = state.copyWith(apiUrl: apiUrl, streamUrl: streamUrl);
+  factory ServerConfig.demo() {
+    return const ServerConfig(
+      apiUrl: 'demo://api',
+      streamUrl: 'demo://stream',
+      isDemo: true,
+    );
+  }
+
+  factory ServerConfig.fromParts({
+    required String ip,
+    required int apiPort,
+    required int streamPort,
+  }) {
+    final trimmedIp = ip.trim();
+    return ServerConfig(
+      apiUrl: 'http://$trimmedIp:$apiPort',
+      streamUrl: 'http://$trimmedIp:$streamPort',
+    );
+  }
+
+  bool get isConfigured => isDemo || (apiUrl.isNotEmpty && streamUrl.isNotEmpty);
+
+  String get serverIp => isDemo ? 'Demo Mode' : _hostFromUrl(apiUrl);
+
+  int get apiPort => isDemo ? defaultApiPort : _portFromUrl(apiUrl, defaultApiPort);
+
+  int get streamPort =>
+      isDemo ? defaultStreamPort : _portFromUrl(streamUrl, defaultStreamPort);
+
+  ServerConfig copyWith({String? apiUrl, String? streamUrl, bool? isDemo}) {
+    return ServerConfig(
+      apiUrl: apiUrl ?? this.apiUrl,
+      streamUrl: streamUrl ?? this.streamUrl,
+      isDemo: isDemo ?? this.isDemo,
+    );
+  }
+
+  static String _hostFromUrl(String value) {
+    return Uri.tryParse(value)?.host ?? '';
+  }
+
+  static int _portFromUrl(String value, int fallback) {
+    final uri = Uri.tryParse(value);
+    if (uri == null || !uri.hasPort) {
+      return fallback;
+    }
+    return uri.port;
   }
 }
 
-// ── ApiService ───────────────────────────────────────────
+final initialServerConfigProvider = Provider<ServerConfig?>((ref) => null);
+
+final serverConfigProvider =
+    StateNotifierProvider<ServerConfigNotifier, ServerConfig>((ref) {
+  return ServerConfigNotifier(ref.watch(initialServerConfigProvider));
+});
+
+class ServerConfigNotifier extends StateNotifier<ServerConfig> {
+  ServerConfigNotifier(ServerConfig? initial)
+      : super(initial ?? ServerConfig.empty()) {
+    loadSavedConfig();
+  }
+
+  Future<void> loadSavedConfig() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('demo_mode') ?? false) {
+      state = ServerConfig.demo();
+      return;
+    }
+
+    final ip = prefs.getString('server_ip');
+    if (ip == null || ip.trim().isEmpty) {
+      return;
+    }
+
+    state = ServerConfig.fromParts(
+      ip: ip,
+      apiPort: prefs.getInt('api_port') ?? defaultApiPort,
+      streamPort: prefs.getInt('stream_port') ?? defaultStreamPort,
+    );
+  }
+
+  Future<void> save({
+    required String ip,
+    required int apiPort,
+    required int streamPort,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('demo_mode', false);
+    await prefs.setString('server_ip', ip.trim());
+    await prefs.setInt('api_port', apiPort);
+    await prefs.setInt('stream_port', streamPort);
+
+    state = ServerConfig.fromParts(
+      ip: ip,
+      apiPort: apiPort,
+      streamPort: streamPort,
+    );
+  }
+
+  Future<void> useDemoMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('demo_mode', true);
+    await prefs.remove('server_ip');
+    await prefs.remove('api_port');
+    await prefs.remove('stream_port');
+    state = ServerConfig.demo();
+  }
+
+  Future<void> clear() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('demo_mode');
+    await prefs.remove('server_ip');
+    await prefs.remove('api_port');
+    await prefs.remove('stream_port');
+    state = ServerConfig.empty();
+  }
+}
+
 final apiServiceProvider = Provider<ApiService>((ref) {
   final config = ref.watch(serverConfigProvider);
   return ApiService(baseUrl: config.apiUrl, streamUrl: config.streamUrl);
 });
 
-// ── Cameras (fetched once + refresh) ─────────────────────
 final camerasProvider = FutureProvider<List<Camera>>((ref) async {
+  final config = ref.watch(serverConfigProvider);
+  if (!config.isConfigured) {
+    return [];
+  }
+  if (config.isDemo) {
+    return _demoCameras;
+  }
   return ref.watch(apiServiceProvider).getCameras();
 });
 
-// ── Alerts polling every 3 seconds ───────────────────────
-final alertsProvider = StreamProvider<List<Alert>>((ref) {
+final alertsProvider = StreamProvider<List<Alert>>((ref) async* {
+  final config = ref.watch(serverConfigProvider);
+  if (!config.isConfigured) {
+    yield [];
+    return;
+  }
+  if (config.isDemo) {
+    while (true) {
+      yield _demoAlerts();
+      await Future<void>.delayed(const Duration(seconds: 3));
+    }
+  }
+
   final api = ref.watch(apiServiceProvider);
-  return Stream.periodic(const Duration(seconds: 3))
-      .asyncMap((_) => api.getAlerts());
+  while (true) {
+    yield await api.getAlerts();
+    await Future<void>.delayed(const Duration(seconds: 3));
+  }
 });
 
-// ── Track last seen alert ID to detect NEW alerts ─────────
 final lastAlertIdProvider = StateProvider<String?>((ref) => null);
+
+const _demoCameras = [
+  Camera(
+    id: 'demo-front-door',
+    name: 'Front Door',
+    location: 'Entrance',
+    isOnline: true,
+  ),
+  Camera(
+    id: 'demo-parking',
+    name: 'Parking Lot',
+    location: 'Outside',
+    isOnline: true,
+  ),
+  Camera(
+    id: 'demo-warehouse',
+    name: 'Warehouse',
+    location: 'Storage',
+    isOnline: true,
+  ),
+  Camera(
+    id: 'demo-back-gate',
+    name: 'Back Gate',
+    location: 'Rear',
+    isOnline: false,
+  ),
+];
+
+List<Alert> _demoAlerts() {
+  final now = DateTime.now();
+  return [
+    Alert(
+      id: 'demo-fire',
+      type: AlertType.fire,
+      cameraId: 'demo-warehouse',
+      cameraName: 'Warehouse',
+      timestamp: now.subtract(const Duration(minutes: 2)),
+    ),
+    Alert(
+      id: 'demo-suspicious',
+      type: AlertType.suspicious,
+      cameraId: 'demo-front-door',
+      cameraName: 'Front Door',
+      timestamp: now.subtract(const Duration(minutes: 12)),
+    ),
+    Alert(
+      id: 'demo-smoke',
+      type: AlertType.smoke,
+      cameraId: 'demo-parking',
+      cameraName: 'Parking Lot',
+      timestamp: now.subtract(const Duration(hours: 1)),
+    ),
+  ];
+}

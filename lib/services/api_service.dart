@@ -1,5 +1,7 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
+
 import '../models/alert.dart';
 import '../models/camera.dart';
 
@@ -7,35 +9,86 @@ class ApiService {
   final String baseUrl;
   final String streamUrl;
 
-  ApiService({required this.baseUrl, required this.streamUrl});
+  const ApiService({
+    required this.baseUrl,
+    required this.streamUrl,
+  });
 
-  // Fetch list of cameras
+  Future<bool> checkHealth() async {
+    if (baseUrl.isEmpty) {
+      return false;
+    }
+
+    try {
+      final response = await http
+          .get(Uri.parse('$baseUrl/health'))
+          .timeout(const Duration(seconds: 5));
+      if (response.statusCode != 200) {
+        return false;
+      }
+
+      final body = jsonDecode(response.body);
+      return body is Map<String, dynamic> && body['status'] == 'ok';
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<List<Camera>> getCameras() async {
+    if (baseUrl.isEmpty) {
+      return [];
+    }
+
     try {
-      final res = await http.get(Uri.parse('$baseUrl/cameras'))
+      final response = await http
+          .get(Uri.parse('$baseUrl/cameras'))
           .timeout(const Duration(seconds: 5));
-      if (res.statusCode == 200) {
-        final List data = jsonDecode(res.body);
-        return data.map((e) => Camera.fromJson(e)).toList();
+      if (response.statusCode != 200) {
+        return [];
       }
-    } catch (_) {}
-    return [];
+
+      final body = jsonDecode(response.body);
+      if (body is! List) {
+        return [];
+      }
+
+      return body
+          .whereType<Map<String, dynamic>>()
+          .map(Camera.fromJson)
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
-  // Fetch latest alerts
   Future<List<Alert>> getAlerts() async {
+    if (baseUrl.isEmpty) {
+      return [];
+    }
+
     try {
-      final res = await http.get(Uri.parse('$baseUrl/alerts'))
+      final response = await http
+          .get(Uri.parse('$baseUrl/alerts'))
           .timeout(const Duration(seconds: 5));
-      if (res.statusCode == 200) {
-        final List data = jsonDecode(res.body);
-        return data.map((e) => Alert.fromJson(e)).toList();
+      if (response.statusCode != 200) {
+        return [];
       }
-    } catch (_) {}
-    return [];
+
+      final body = jsonDecode(response.body);
+      if (body is! List) {
+        return [];
+      }
+
+      return body
+          .whereType<Map<String, dynamic>>()
+          .map(Alert.fromJson)
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
-  // Stream URL for a camera
-  String streamUrlForCamera(String cameraId) =>
-      '$streamUrl/stream/$cameraId';
+  String streamUrlForCamera(String cameraId) {
+    return '$streamUrl/stream/$cameraId';
+  }
 }
