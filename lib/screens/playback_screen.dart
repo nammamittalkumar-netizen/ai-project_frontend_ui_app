@@ -29,6 +29,7 @@ class _PlaybackScreenState extends ConsumerState<PlaybackScreen> {
   Widget build(BuildContext context) {
     final cameras = ref.watch(camerasProvider).valueOrNull ?? [];
     final selected = _selectedCamera(cameras);
+    final accentColor = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
@@ -88,7 +89,9 @@ class _PlaybackScreenState extends ConsumerState<PlaybackScreen> {
                             ? Icons.pause_rounded
                             : Icons.play_arrow_rounded,
                       ),
-                      style: IconButton.styleFrom(backgroundColor: Colors.red),
+                      style: IconButton.styleFrom(
+                        backgroundColor: accentColor,
+                      ),
                     ),
                     IconButton(
                       onPressed: () {},
@@ -99,7 +102,7 @@ class _PlaybackScreenState extends ConsumerState<PlaybackScreen> {
                       child: Slider(
                         value: _playing ? 0.62 : 0.28,
                         onChanged: (_) {},
-                        activeColor: Colors.red,
+                        activeColor: accentColor,
                         inactiveColor: const Color(0xFF333333),
                       ),
                     ),

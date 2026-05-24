@@ -21,6 +21,7 @@ class DashboardScreen extends ConsumerWidget {
     final alertsAsync = ref.watch(alertsProvider);
     final isDemo =
         ref.watch(serverConfigProvider.select((config) => config.isDemo));
+    final accentColor = Theme.of(context).colorScheme.primary;
 
     final alertCount = alertsAsync.valueOrNull?.length ?? 0;
 
@@ -39,7 +40,7 @@ class DashboardScreen extends ConsumerWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: Colors.red,
+                  color: accentColor,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -56,15 +57,15 @@ class DashboardScreen extends ConsumerWidget {
         ],
       ),
       body: RefreshIndicator(
-        color: Colors.red,
+        color: accentColor,
         backgroundColor: const Color(0xFF1A1A1A),
         onRefresh: () async {
           ref.invalidate(camerasProvider);
           await ref.read(camerasProvider.future);
         },
         child: camerasAsync.when(
-          loading: () => const Center(
-            child: CircularProgressIndicator(color: Colors.red),
+          loading: () => Center(
+            child: CircularProgressIndicator(color: accentColor),
           ),
           error: (error, _) => ListView(
             children: [
@@ -122,11 +123,11 @@ class DashboardScreen extends ConsumerWidget {
                         label: 'AI Detections',
                         color: Colors.greenAccent,
                       ),
-                      const _StatTile(
+                      _StatTile(
                         icon: Icons.dns_rounded,
                         value: '98.5%',
                         label: 'System Uptime',
-                        color: Colors.redAccent,
+                        color: accentColor,
                       ),
                     ],
                   ),
@@ -141,11 +142,14 @@ class DashboardScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: const Color(0xFF2A2A2A)),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.auto_awesome_rounded, color: Colors.red),
-                          SizedBox(width: 10),
-                          Expanded(
+                          Icon(
+                            Icons.auto_awesome_rounded,
+                            color: accentColor,
+                          ),
+                          const SizedBox(width: 10),
+                          const Expanded(
                             child: Text(
                               'AI search, playback, analytics, and alerts are available from the bottom menu. Reports and settings are in the top menu.',
                               style: TextStyle(
@@ -315,7 +319,7 @@ class _CameraCard extends ConsumerWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.red,
+                            color: Theme.of(context).colorScheme.primary,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text(
@@ -467,7 +471,11 @@ class _DemoFeed extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          CustomPaint(painter: _DemoFeedPainter()),
+          CustomPaint(
+            painter: _DemoFeedPainter(
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -492,7 +500,10 @@ class _DemoFeed extends StatelessWidget {
                 Text(
                   'Demo Feed',
                   style: TextStyle(
-                    color: Colors.red.withValues(alpha: 0.85),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.85),
                     fontSize: fullscreen ? 13 : 10,
                     fontWeight: FontWeight.w600,
                   ),
@@ -507,6 +518,10 @@ class _DemoFeed extends StatelessWidget {
 }
 
 class _DemoFeedPainter extends CustomPainter {
+  final Color color;
+
+  const _DemoFeedPainter({required this.color});
+
   @override
   void paint(Canvas canvas, Size size) {
     final gridPaint = Paint()
@@ -522,7 +537,7 @@ class _DemoFeedPainter extends CustomPainter {
     }
 
     final scanPaint = Paint()
-      ..color = Colors.red.withValues(alpha: 0.18)
+      ..color = color.withValues(alpha: 0.18)
       ..strokeWidth = 2;
     canvas.drawLine(
       Offset(0, size.height * 0.36),

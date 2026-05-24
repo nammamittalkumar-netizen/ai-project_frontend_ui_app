@@ -194,7 +194,7 @@ class _AlertPopupState extends State<AlertPopup> {
                   child: ElevatedButton(
                     onPressed: () => Navigator.of(context).maybePop(),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -234,8 +234,10 @@ class _VideoPreview extends StatelessWidget {
 
     final controller = this.controller;
     if (controller == null || !controller.value.isInitialized) {
-      return const _VideoShell(
-        child: CircularProgressIndicator(color: Colors.red),
+      return _VideoShell(
+        child: CircularProgressIndicator(
+          color: Theme.of(context).colorScheme.primary,
+        ),
       );
     }
 

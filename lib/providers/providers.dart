@@ -9,6 +9,26 @@ import '../services/api_service.dart';
 
 const int defaultApiPort = 8000;
 const int defaultStreamPort = 8888;
+const int defaultAccentColorValue = 0xFFF44336;
+
+class AppAccentColor {
+  final String name;
+  final int value;
+
+  const AppAccentColor({
+    required this.name,
+    required this.value,
+  });
+}
+
+const appAccentColors = [
+  AppAccentColor(name: 'Red', value: 0xFFF44336),
+  AppAccentColor(name: 'Blue', value: 0xFF2196F3),
+  AppAccentColor(name: 'Green', value: 0xFF4CAF50),
+  AppAccentColor(name: 'Orange', value: 0xFFFF9800),
+  AppAccentColor(name: 'Purple', value: 0xFF9C27B0),
+  AppAccentColor(name: 'Teal', value: 0xFF009688),
+];
 
 class ServerConfig {
   final String apiUrl;
@@ -181,6 +201,32 @@ final alertsProvider = StreamProvider<List<Alert>>((ref) async* {
 });
 
 final lastAlertIdProvider = StateProvider<String?>((ref) => null);
+
+final accentColorProvider =
+    StateNotifierProvider<AccentColorNotifier, int>((ref) {
+  return AccentColorNotifier();
+});
+
+class AccentColorNotifier extends StateNotifier<int> {
+  AccentColorNotifier() : super(defaultAccentColorValue) {
+    loadSavedColor();
+  }
+
+  Future<void> loadSavedColor() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedColor = prefs.getInt('accent_color');
+    if (savedColor == null) {
+      return;
+    }
+    state = savedColor;
+  }
+
+  Future<void> save(int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('accent_color', value);
+    state = value;
+  }
+}
 
 const _demoCameras = [
   Camera(

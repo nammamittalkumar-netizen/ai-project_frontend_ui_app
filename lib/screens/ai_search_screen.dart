@@ -40,6 +40,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
   @override
   Widget build(BuildContext context) {
     final alerts = ref.watch(alertsProvider).valueOrNull ?? [];
+    final accentColor = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
@@ -68,11 +69,11 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.auto_awesome_rounded, color: Colors.red),
-                    SizedBox(width: 8),
-                    Expanded(
+                    Icon(Icons.auto_awesome_rounded, color: accentColor),
+                    const SizedBox(width: 8),
+                    const Expanded(
                       child: Text(
                         'Ask anything about your video footage',
                         style: TextStyle(
@@ -105,7 +106,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
                     icon: const Icon(Icons.search_rounded),
                     label: const Text('Search'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
+                      backgroundColor: accentColor,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 13),
                       shape: RoundedRectangleBorder(
@@ -158,10 +159,10 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
                               ],
                             ),
                           ),
-                          const Text(
+                          Text(
                             '94%',
                             style: TextStyle(
-                              color: Colors.red,
+                              color: accentColor,
                               fontWeight: FontWeight.w700,
                             ),
                           ),

@@ -18,6 +18,7 @@ class ReportsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cameras = ref.watch(camerasProvider).valueOrNull ?? [];
     final alerts = ref.watch(alertsProvider).valueOrNull ?? [];
+    final accentColor = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
@@ -69,7 +70,7 @@ class ReportsScreen extends ConsumerWidget {
             icon: const Icon(Icons.download_rounded),
             label: const Text('Generate Report'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: accentColor,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
@@ -110,10 +111,11 @@ class _ReportCard extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.14),
+              color:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: Colors.red),
+            child: Icon(icon, color: Theme.of(context).colorScheme.primary),
           ),
           const SizedBox(width: 12),
           Expanded(

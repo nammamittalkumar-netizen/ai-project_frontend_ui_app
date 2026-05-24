@@ -45,21 +45,23 @@ Future<void> main() async {
   );
 }
 
-class SecurityApp extends StatelessWidget {
+class SecurityApp extends ConsumerWidget {
   final bool hasConfig;
 
   const SecurityApp({super.key, required this.hasConfig});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final accentColor = Color(ref.watch(accentColorProvider));
+
     return MaterialApp(
       title: 'Security Hub',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(useMaterial3: true).copyWith(
-        colorScheme: const ColorScheme.dark(
-          primary: Colors.red,
-          secondary: Colors.red,
-          surface: Color(0xFF1A1A1A),
+        colorScheme: ColorScheme.dark(
+          primary: accentColor,
+          secondary: accentColor,
+          surface: const Color(0xFF1A1A1A),
           onSurface: Colors.white,
         ),
         scaffoldBackgroundColor: const Color(0xFF111111),
@@ -87,14 +89,14 @@ class SecurityApp extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.red),
+            borderSide: BorderSide(color: accentColor),
           ),
           labelStyle: const TextStyle(color: Colors.grey),
           helperStyle: const TextStyle(color: Colors.grey),
         ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: Color(0xFF161616),
-          selectedItemColor: Colors.red,
+        bottomNavigationBarTheme: BottomNavigationBarThemeData(
+          backgroundColor: const Color(0xFF161616),
+          selectedItemColor: accentColor,
           unselectedItemColor: Colors.grey,
           type: BottomNavigationBarType.fixed,
         ),
@@ -321,7 +323,8 @@ class _MainBottomNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? Colors.red : Colors.grey;
+    final color =
+        selected ? Theme.of(context).colorScheme.primary : Colors.grey;
 
     return Expanded(
       child: InkWell(

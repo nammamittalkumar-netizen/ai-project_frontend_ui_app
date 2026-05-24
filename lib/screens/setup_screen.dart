@@ -98,6 +98,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final accentColor = Theme.of(context).colorScheme.primary;
+
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
       body: SafeArea(
@@ -111,9 +113,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.security_rounded,
-                      color: Colors.red,
+                      color: accentColor,
                       size: 48,
                     ),
                     const SizedBox(height: 16),
@@ -202,10 +204,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                                 _isConnecting ? 'Connecting...' : 'Connect',
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
+                                backgroundColor: accentColor,
                                 foregroundColor: Colors.white,
                                 disabledBackgroundColor:
-                                    Colors.red.withValues(alpha: 0.45),
+                                    accentColor.withValues(alpha: 0.45),
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 14),
                                 shape: RoundedRectangleBorder(

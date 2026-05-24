@@ -19,6 +19,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(serverConfigProvider);
+    final accentColor = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
@@ -37,6 +38,9 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const _SectionTitle('Appearance'),
+          const _AccentColorPicker(),
+          const SizedBox(height: 24),
           const _SectionTitle('Server'),
           _SettingsTile(
             icon: Icons.computer_rounded,
@@ -98,7 +102,7 @@ class SettingsScreen extends ConsumerWidget {
             icon: const Icon(Icons.logout_rounded),
             label: const Text('Disconnect'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: accentColor,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
@@ -116,6 +120,7 @@ class SettingsScreen extends ConsumerWidget {
     WidgetRef ref,
     ServerConfig config,
   ) async {
+    final accentColor = Theme.of(context).colorScheme.primary;
     final ipController = TextEditingController(text: config.serverIp);
     final apiPortController = TextEditingController(text: '${config.apiPort}');
     final streamPortController =
@@ -185,7 +190,7 @@ class SettingsScreen extends ConsumerWidget {
                   Navigator.of(dialogContext).pop();
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(backgroundColor: accentColor),
               child: const Text('Save'),
             ),
           ],
@@ -314,6 +319,87 @@ class _SettingsTile extends StatelessWidget {
   }
 }
 
+class _AccentColorPicker extends ConsumerWidget {
+  const _AccentColorPicker();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedColor = ref.watch(accentColorProvider);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF2A2A2A)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.palette_rounded, color: Colors.grey, size: 20),
+              SizedBox(width: 12),
+              Text(
+                'Theme Color',
+                style: TextStyle(color: Colors.white, fontSize: 13),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: appAccentColors.map((accent) {
+              final color = Color(accent.value);
+              final isSelected = selectedColor == accent.value;
+
+              return Tooltip(
+                message: accent.name,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () {
+                    ref.read(accentColorProvider.notifier).save(accent.value);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected ? Colors.white : Colors.transparent,
+                        width: 3,
+                      ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: color.withValues(alpha: 0.35),
+                                blurRadius: 10,
+                                spreadRadius: 1,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: isSelected
+                        ? const Icon(
+                            Icons.check_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          )
+                        : null,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SettingsToggle extends StatefulWidget {
   final IconData icon;
   final String title;
@@ -353,7 +439,7 @@ class _SettingsToggleState extends State<_SettingsToggle> {
           Switch(
             value: _value,
             onChanged: (value) => setState(() => _value = value),
-            activeThumbColor: Colors.red,
+            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
         ],
       ),

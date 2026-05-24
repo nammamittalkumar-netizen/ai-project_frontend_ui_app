@@ -20,6 +20,7 @@ class AlertsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final alertsAsync = ref.watch(alertsProvider);
+    final accentColor = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
@@ -36,15 +37,15 @@ class AlertsScreen extends ConsumerWidget {
         ],
       ),
       body: RefreshIndicator(
-        color: Colors.red,
+        color: accentColor,
         backgroundColor: const Color(0xFF1A1A1A),
         onRefresh: () async {
           ref.invalidate(alertsProvider);
           await ref.read(alertsProvider.future);
         },
         child: alertsAsync.when(
-          loading: () => const Center(
-            child: CircularProgressIndicator(color: Colors.red),
+          loading: () => Center(
+            child: CircularProgressIndicator(color: accentColor),
           ),
           error: (error, _) => ListView(
             children: [

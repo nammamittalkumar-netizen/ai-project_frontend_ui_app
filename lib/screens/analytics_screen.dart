@@ -20,6 +20,7 @@ class AnalyticsScreen extends ConsumerWidget {
     final cameras = ref.watch(camerasProvider).valueOrNull ?? [];
     final alerts = ref.watch(alertsProvider).valueOrNull ?? [];
     final online = cameras.where((camera) => camera.isOnline).length;
+    final accentColor = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
@@ -64,29 +65,29 @@ class AnalyticsScreen extends ConsumerWidget {
                 value: '${alerts.length}',
                 label: 'Events Triggered',
               ),
-              const _MetricCard(
+              _MetricCard(
                 icon: Icons.schedule_rounded,
-                color: Colors.redAccent,
+                color: accentColor,
                 value: '12.5h',
                 label: 'Avg. Dwell Time',
               ),
             ],
           ),
           const SizedBox(height: 18),
-          const _Panel(
+          _Panel(
             title: 'Detection Trends',
             child: SizedBox(
               height: 190,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  _TrendBar(label: 'Mon', value: 45),
-                  _TrendBar(label: 'Tue', value: 72),
-                  _TrendBar(label: 'Wed', value: 58),
-                  _TrendBar(label: 'Thu', value: 91),
-                  _TrendBar(label: 'Fri', value: 68),
-                  _TrendBar(label: 'Sat', value: 52),
-                  _TrendBar(label: 'Sun', value: 38),
+                  _TrendBar(label: 'Mon', value: 45, color: accentColor),
+                  _TrendBar(label: 'Tue', value: 72, color: accentColor),
+                  _TrendBar(label: 'Wed', value: 58, color: accentColor),
+                  _TrendBar(label: 'Thu', value: 91, color: accentColor),
+                  _TrendBar(label: 'Fri', value: 68, color: accentColor),
+                  _TrendBar(label: 'Sat', value: 52, color: accentColor),
+                  _TrendBar(label: 'Sun', value: 38, color: accentColor),
                 ],
               ),
             ),
@@ -220,8 +221,13 @@ class _Panel extends StatelessWidget {
 class _TrendBar extends StatelessWidget {
   final String label;
   final int value;
+  final Color color;
 
-  const _TrendBar({required this.label, required this.value});
+  const _TrendBar({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -239,7 +245,7 @@ class _TrendBar extends StatelessWidget {
                   widthFactor: 0.72,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: Colors.red,
+                      color: color,
                       borderRadius: BorderRadius.circular(6),
                     ),
                   ),
