@@ -3,10 +3,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/providers.dart';
+import '../widgets/main_overflow_menu.dart';
 import 'setup_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
-  const SettingsScreen({super.key});
+  final ValueChanged<int> onNavigate;
+  final int currentIndex;
+
+  const SettingsScreen({
+    super.key,
+    required this.onNavigate,
+    required this.currentIndex,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -19,6 +27,12 @@ class SettingsScreen extends ConsumerWidget {
           'Settings',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
+        actions: [
+          MainOverflowMenu(
+            onNavigate: onNavigate,
+            currentIndex: currentIndex,
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -27,7 +41,8 @@ class SettingsScreen extends ConsumerWidget {
           _SettingsTile(
             icon: Icons.computer_rounded,
             title: config.isDemo ? 'Mode' : 'Mini PC IP',
-            subtitle: config.serverIp.isEmpty ? 'Not configured' : config.serverIp,
+            subtitle:
+                config.serverIp.isEmpty ? 'Not configured' : config.serverIp,
           ),
           _SettingsTile(
             icon: Icons.api_rounded,

@@ -1,0 +1,245 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+
+import '../providers/providers.dart';
+import '../widgets/main_overflow_menu.dart';
+
+class AiSearchScreen extends ConsumerStatefulWidget {
+  final ValueChanged<int> onNavigate;
+  final int currentIndex;
+
+  const AiSearchScreen({
+    super.key,
+    required this.onNavigate,
+    required this.currentIndex,
+  });
+
+  @override
+  ConsumerState<AiSearchScreen> createState() => _AiSearchScreenState();
+}
+
+class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
+  final _controller = TextEditingController();
+  String _query = '';
+
+  static const _popularSearches = [
+    'All deliveries this week',
+    'Unauthorized access attempts',
+    'After hours activity',
+    'Package detections',
+    'Vehicle count today',
+  ];
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final alerts = ref.watch(alertsProvider).valueOrNull ?? [];
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF111111),
+      appBar: AppBar(
+        title: const Text(
+          'AI Search',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        actions: [
+          MainOverflowMenu(
+            onNavigate: widget.onNavigate,
+            currentIndex: widget.currentIndex,
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1A),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF2A2A2A)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.auto_awesome_rounded, color: Colors.red),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Ask anything about your video footage',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _controller,
+                  style: const TextStyle(color: Colors.white),
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    hintText:
+                        'Example: Show deliveries yesterday, or find after hours activity',
+                    hintStyle: TextStyle(color: Colors.grey),
+                  ),
+                  onSubmitted: (_) => _search(),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _search,
+                    icon: const Icon(Icons.search_rounded),
+                    label: const Text('Search'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          if (_query.isNotEmpty) ...[
+            const _SectionTitle('Search Results'),
+            if (alerts.isEmpty)
+              const _EmptyResult()
+            else
+              ...alerts.take(5).map(
+                    (alert) => Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A1A1A),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFF2A2A2A)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(alert.typeIcon, color: alert.typeColor),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  alert.typeLabel,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  '${alert.cameraName} - ${DateFormat('MMM d, hh:mm a').format(alert.timestamp)}',
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Text(
+                            '94%',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+            const SizedBox(height: 12),
+          ],
+          const _SectionTitle('Popular Searches'),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _popularSearches.map((query) {
+              return ActionChip(
+                label: Text(query),
+                avatar: const Icon(Icons.search_rounded, size: 18),
+                backgroundColor: const Color(0xFF1A1A1A),
+                side: const BorderSide(color: Color(0xFF2A2A2A)),
+                labelStyle: const TextStyle(color: Colors.white),
+                onPressed: () {
+                  _controller.text = query;
+                  _search();
+                },
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _search() {
+    final value = _controller.text.trim();
+    if (value.isEmpty) {
+      return;
+    }
+    setState(() => _query = value);
+  }
+}
+
+class _EmptyResult extends StatelessWidget {
+  const _EmptyResult();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF2A2A2A)),
+      ),
+      child: const Text(
+        'No matching alerts yet. Connect your server or use demo mode to test results.',
+        style: TextStyle(color: Colors.grey),
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String title;
+
+  const _SectionTitle(this.title);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        title,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}

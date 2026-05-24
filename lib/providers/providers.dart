@@ -43,11 +43,13 @@ class ServerConfig {
     );
   }
 
-  bool get isConfigured => isDemo || (apiUrl.isNotEmpty && streamUrl.isNotEmpty);
+  bool get isConfigured =>
+      isDemo || (apiUrl.isNotEmpty && streamUrl.isNotEmpty);
 
   String get serverIp => isDemo ? 'Demo Mode' : _hostFromUrl(apiUrl);
 
-  int get apiPort => isDemo ? defaultApiPort : _portFromUrl(apiUrl, defaultApiPort);
+  int get apiPort =>
+      isDemo ? defaultApiPort : _portFromUrl(apiUrl, defaultApiPort);
 
   int get streamPort =>
       isDemo ? defaultStreamPort : _portFromUrl(streamUrl, defaultStreamPort);

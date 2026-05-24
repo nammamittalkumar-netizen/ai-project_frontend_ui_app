@@ -50,30 +50,30 @@ class Alert {
   String get typeLabel {
     switch (type) {
       case AlertType.fire:
-        return '🔥 Fire Detected';
+        return 'Fire Detected';
       case AlertType.smoke:
-        return '💨 Smoke Detected';
+        return 'Smoke Detected';
       case AlertType.liquidSpill:
-        return '💧 Liquid Spill';
+        return 'Liquid Spill';
       case AlertType.suspicious:
-        return '👁 Suspicious Activity';
+        return 'Suspicious Activity';
       case AlertType.fall:
-        return '🧍 Person Fall';
+        return 'Person Fall';
     }
   }
 
   String get typeEmoji {
     switch (type) {
       case AlertType.fire:
-        return '🔥';
+        return 'Fire';
       case AlertType.smoke:
-        return '💨';
+        return 'Smoke';
       case AlertType.liquidSpill:
-        return '💧';
+        return 'Spill';
       case AlertType.suspicious:
-        return '👁';
+        return 'Watch';
       case AlertType.fall:
-        return '🧍';
+        return 'Fall';
     }
   }
 

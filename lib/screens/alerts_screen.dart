@@ -5,9 +5,17 @@ import 'package:intl/intl.dart';
 import '../models/alert.dart';
 import '../providers/providers.dart';
 import '../widgets/alert_popup.dart';
+import '../widgets/main_overflow_menu.dart';
 
 class AlertsScreen extends ConsumerWidget {
-  const AlertsScreen({super.key});
+  final ValueChanged<int> onNavigate;
+  final int currentIndex;
+
+  const AlertsScreen({
+    super.key,
+    required this.onNavigate,
+    required this.currentIndex,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -20,6 +28,12 @@ class AlertsScreen extends ConsumerWidget {
           'Alerts',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
+        actions: [
+          MainOverflowMenu(
+            onNavigate: onNavigate,
+            currentIndex: currentIndex,
+          ),
+        ],
       ),
       body: RefreshIndicator(
         color: Colors.red,

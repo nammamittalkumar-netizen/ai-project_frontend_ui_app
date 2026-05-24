@@ -3,15 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/camera.dart';
 import '../providers/providers.dart';
+import '../widgets/main_overflow_menu.dart';
 
 class DashboardScreen extends ConsumerWidget {
-  const DashboardScreen({super.key});
+  final ValueChanged<int> onNavigate;
+  final int currentIndex;
+
+  const DashboardScreen({
+    super.key,
+    required this.onNavigate,
+    required this.currentIndex,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final camerasAsync = ref.watch(camerasProvider);
     final alertsAsync = ref.watch(alertsProvider);
-    final isDemo = ref.watch(serverConfigProvider.select((config) => config.isDemo));
+    final isDemo =
+        ref.watch(serverConfigProvider.select((config) => config.isDemo));
 
     final alertCount = alertsAsync.valueOrNull?.length ?? 0;
 
@@ -39,6 +48,10 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ),
             ),
+          ),
+          MainOverflowMenu(
+            onNavigate: onNavigate,
+            currentIndex: currentIndex,
           ),
         ],
       ),
@@ -79,21 +92,161 @@ class DashboardScreen extends ConsumerWidget {
               );
             }
 
-            return GridView.builder(
-              padding: const EdgeInsets.all(12),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 0.9,
-              ),
-              itemCount: cameras.length,
-              itemBuilder: (context, index) {
-                return _CameraCard(camera: cameras[index], isDemo: isDemo);
-              },
+            final onlineCount =
+                cameras.where((camera) => camera.isOnline).length;
+            return CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                  sliver: SliverGrid.count(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 1.45,
+                    children: [
+                      _StatTile(
+                        icon: Icons.videocam_rounded,
+                        value: '$onlineCount/${cameras.length}',
+                        label: 'Active Cameras',
+                        color: Colors.lightBlueAccent,
+                      ),
+                      _StatTile(
+                        icon: Icons.warning_amber_rounded,
+                        value: '$alertCount',
+                        label: 'Events Today',
+                        color: Colors.orangeAccent,
+                      ),
+                      _StatTile(
+                        icon: Icons.psychology_rounded,
+                        value: '${alertCount * 3}',
+                        label: 'AI Detections',
+                        color: Colors.greenAccent,
+                      ),
+                      const _StatTile(
+                        icon: Icons.dns_rounded,
+                        value: '98.5%',
+                        label: 'System Uptime',
+                        color: Colors.redAccent,
+                      ),
+                    ],
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A1A1A),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF2A2A2A)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.auto_awesome_rounded, color: Colors.red),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'AI search, playback, analytics, alerts, reports, and settings are available from the bottom menu.',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(12, 18, 12, 8),
+                    child: Text(
+                      'Live Camera Feeds',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  sliver: SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: 0.9,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        return _CameraCard(
+                          camera: cameras[index],
+                          isDemo: isDemo,
+                        );
+                      },
+                      childCount: cameras.length,
+                    ),
+                  ),
+                ),
+              ],
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color color;
+
+  const _StatTile({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF2A2A2A)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Icon(icon, color: color, size: 24),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.grey, fontSize: 11),
+          ),
+        ],
       ),
     );
   }
@@ -271,13 +424,13 @@ class _FullscreenCamera extends StatelessWidget {
             ? isDemo
                 ? _DemoFeed(camera: camera, fullscreen: true)
                 : Image.network(
-                streamUrl,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const Text(
-                  'Stream unavailable',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              )
+                    streamUrl,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Text(
+                      'Stream unavailable',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  )
             : const Text(
                 'Camera offline',
                 style: TextStyle(color: Colors.grey),

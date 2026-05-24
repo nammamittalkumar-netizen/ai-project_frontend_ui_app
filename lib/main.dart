@@ -5,7 +5,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'models/alert.dart';
 import 'providers/providers.dart';
 import 'screens/alerts_screen.dart';
+import 'screens/ai_search_screen.dart';
+import 'screens/analytics_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/playback_screen.dart';
+import 'screens/reports_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/setup_screen.dart';
 import 'widgets/alert_popup.dart';
@@ -24,12 +28,12 @@ Future<void> main() async {
   final initialConfig = isDemoMode
       ? ServerConfig.demo()
       : hasConfig
-      ? ServerConfig.fromParts(
-          ip: savedIp!.trim(),
-          apiPort: savedApiPort,
-          streamPort: savedStreamPort,
-        )
-      : null;
+          ? ServerConfig.fromParts(
+              ip: savedIp!.trim(),
+              apiPort: savedApiPort,
+              streamPort: savedStreamPort,
+            )
+          : null;
 
   runApp(
     ProviderScope(
@@ -67,7 +71,8 @@ class SecurityApp extends StatelessWidget {
         ),
         dialogTheme: DialogThemeData(
           backgroundColor: const Color(0xFF1A1A1A),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
@@ -108,12 +113,18 @@ class MainShell extends ConsumerStatefulWidget {
 
 class _MainShellState extends ConsumerState<MainShell> {
   int _index = 0;
+  bool _alertsPrimed = false;
 
-  static const _screens = [
-    DashboardScreen(),
-    AlertsScreen(),
-    SettingsScreen(),
-  ];
+  void _openTab(int index) {
+    if (_index == index) {
+      return;
+    }
+    setState(() => _index = index);
+  }
+
+  void _openBottomTab(int index) {
+    _openTab(index);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,6 +135,14 @@ class _MainShellState extends ConsumerState<MainShell> {
         }
 
         final latest = alerts.first;
+        if (!_alertsPrimed) {
+          _alertsPrimed = true;
+          if (latest.id.isNotEmpty) {
+            ref.read(lastAlertIdProvider.notifier).state = latest.id;
+          }
+          return;
+        }
+
         final lastSeenId = ref.read(lastAlertIdProvider);
         if (latest.id.isEmpty || latest.id == lastSeenId) {
           return;
@@ -143,25 +162,123 @@ class _MainShellState extends ConsumerState<MainShell> {
       });
     });
 
+    final screens = [
+      DashboardScreen(onNavigate: _openTab, currentIndex: _index),
+      PlaybackScreen(onNavigate: _openTab, currentIndex: _index),
+      AiSearchScreen(onNavigate: _openTab, currentIndex: _index),
+      AnalyticsScreen(onNavigate: _openTab, currentIndex: _index),
+      AlertsScreen(onNavigate: _openTab, currentIndex: _index),
+      ReportsScreen(onNavigate: _openTab, currentIndex: _index),
+      SettingsScreen(onNavigate: _openTab, currentIndex: _index),
+    ];
+
     return Scaffold(
-      body: _screens[_index],
-      bottomNavigationBar: BottomNavigationBar(
+      body: screens[_index],
+      bottomNavigationBar: _MainBottomNav(
         currentIndex: _index,
-        onTap: (index) => setState(() => _index = index),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view_rounded),
-            label: 'Cameras',
+        onTap: _openBottomTab,
+      ),
+    );
+  }
+}
+
+class _MainBottomNav extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+
+  const _MainBottomNav({
+    required this.currentIndex,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        height: 64,
+        decoration: const BoxDecoration(
+          color: Color(0xFF161616),
+          border: Border(top: BorderSide(color: Color(0xFF242424))),
+        ),
+        child: Row(
+          children: [
+            _MainBottomNavItem(
+              icon: Icons.grid_view_rounded,
+              label: 'Live',
+              selected: currentIndex == 0,
+              onTap: () => onTap(0),
+            ),
+            _MainBottomNavItem(
+              icon: Icons.history_rounded,
+              label: 'Playback',
+              selected: currentIndex == 1,
+              onTap: () => onTap(1),
+            ),
+            _MainBottomNavItem(
+              icon: Icons.search_rounded,
+              label: 'AI Search',
+              selected: currentIndex == 2,
+              onTap: () => onTap(2),
+            ),
+            _MainBottomNavItem(
+              icon: Icons.bar_chart_rounded,
+              label: 'Analytics',
+              selected: currentIndex == 3,
+              onTap: () => onTap(3),
+            ),
+            _MainBottomNavItem(
+              icon: Icons.notifications_rounded,
+              label: 'Alerts',
+              selected: currentIndex == 4,
+              onTap: () => onTap(4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MainBottomNavItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _MainBottomNavItem({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? Colors.red : Colors.grey;
+
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox.expand(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 23),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                ),
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_rounded),
-            label: 'Alerts',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings_rounded),
-            label: 'Settings',
-          ),
-        ],
+        ),
       ),
     );
   }

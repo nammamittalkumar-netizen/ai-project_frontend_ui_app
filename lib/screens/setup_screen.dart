@@ -219,7 +219,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                             width: double.infinity,
                             child: OutlinedButton.icon(
                               onPressed: _isConnecting ? null : _useDemoMode,
-                              icon: const Icon(Icons.play_circle_outline_rounded),
+                              icon:
+                                  const Icon(Icons.play_circle_outline_rounded),
                               label: const Text('Use Demo Mode'),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.white,
