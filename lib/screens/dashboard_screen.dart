@@ -147,7 +147,7 @@ class DashboardScreen extends ConsumerWidget {
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'AI search, playback, analytics, alerts, reports, and settings are available from the bottom menu.',
+                              'AI search, playback, analytics, and alerts are available from the bottom menu. Reports and settings are in the top menu.',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 13,

@@ -112,18 +112,59 @@ class MainShell extends ConsumerStatefulWidget {
 }
 
 class _MainShellState extends ConsumerState<MainShell> {
+  static const _bottomTabCount = 5;
+
+  late PageController _pageController;
   int _index = 0;
+  bool _isBottomTapAnimating = false;
   bool _alertsPrimed = false;
 
-  void _openTab(int index) {
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _openMenuTab(int index) {
     if (_index == index) {
       return;
     }
     setState(() => _index = index);
   }
 
-  void _openBottomTab(int index) {
-    _openTab(index);
+  Future<void> _openBottomTab(int index) async {
+    if (_index == index && _pageController.page?.round() == index) {
+      return;
+    }
+
+    if (_index >= _bottomTabCount) {
+      _pageController.dispose();
+      _pageController = PageController(initialPage: index);
+      setState(() => _index = index);
+      return;
+    }
+
+    _isBottomTapAnimating = true;
+    setState(() => _index = index);
+
+    if (!_pageController.hasClients) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_pageController.hasClients) {
+          _pageController.jumpToPage(index);
+        }
+        _isBottomTapAnimating = false;
+      });
+      return;
+    }
+
+    _pageController.jumpToPage(index);
+    _isBottomTapAnimating = false;
   }
 
   @override
@@ -162,18 +203,43 @@ class _MainShellState extends ConsumerState<MainShell> {
       });
     });
 
-    final screens = [
-      DashboardScreen(onNavigate: _openTab, currentIndex: _index),
-      PlaybackScreen(onNavigate: _openTab, currentIndex: _index),
-      AiSearchScreen(onNavigate: _openTab, currentIndex: _index),
-      AnalyticsScreen(onNavigate: _openTab, currentIndex: _index),
-      AlertsScreen(onNavigate: _openTab, currentIndex: _index),
-      ReportsScreen(onNavigate: _openTab, currentIndex: _index),
-      SettingsScreen(onNavigate: _openTab, currentIndex: _index),
+    final bottomScreens = [
+      DashboardScreen(onNavigate: _openMenuTab, currentIndex: _index),
+      PlaybackScreen(onNavigate: _openMenuTab, currentIndex: _index),
+      AiSearchScreen(onNavigate: _openMenuTab, currentIndex: _index),
+      AnalyticsScreen(onNavigate: _openMenuTab, currentIndex: _index),
+      AlertsScreen(onNavigate: _openMenuTab, currentIndex: _index),
     ];
 
+    final Widget body = _index < _bottomTabCount
+        ? PageView(
+            controller: _pageController,
+            physics: const BouncingScrollPhysics(),
+            onPageChanged: (index) {
+              if (_isBottomTapAnimating) {
+                return;
+              }
+              setState(() => _index = index);
+            },
+            children: bottomScreens,
+          )
+        : switch (_index) {
+            5 => ReportsScreen(
+                onNavigate: _openMenuTab,
+                currentIndex: _index,
+              ),
+            6 => SettingsScreen(
+                onNavigate: _openMenuTab,
+                currentIndex: _index,
+              ),
+            _ => DashboardScreen(
+                onNavigate: _openMenuTab,
+                currentIndex: _index,
+              ),
+          };
+
     return Scaffold(
-      body: screens[_index],
+      body: body,
       bottomNavigationBar: _MainBottomNav(
         currentIndex: _index,
         onTap: _openBottomTab,
