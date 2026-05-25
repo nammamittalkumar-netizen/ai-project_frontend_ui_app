@@ -77,22 +77,27 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           const _SectionTitle('Notifications'),
           const _SettingsToggle(
+            settingKey: 'fire',
             title: 'Fire Detection',
             icon: Icons.local_fire_department_rounded,
           ),
           const _SettingsToggle(
+            settingKey: 'smoke',
             title: 'Smoke Detection',
             icon: Icons.cloud_rounded,
           ),
           const _SettingsToggle(
+            settingKey: 'liquid_spill',
             title: 'Liquid Spill',
             icon: Icons.water_drop_rounded,
           ),
           const _SettingsToggle(
+            settingKey: 'suspicious_activity',
             title: 'Suspicious Activity',
             icon: Icons.visibility_rounded,
           ),
           const _SettingsToggle(
+            settingKey: 'fall_down',
             title: 'Fall Detection',
             icon: Icons.personal_injury_rounded,
           ),
@@ -400,24 +405,22 @@ class _AccentColorPicker extends ConsumerWidget {
   }
 }
 
-class _SettingsToggle extends StatefulWidget {
+class _SettingsToggle extends ConsumerWidget {
+  final String settingKey;
   final IconData icon;
   final String title;
 
   const _SettingsToggle({
+    required this.settingKey,
     required this.icon,
     required this.title,
   });
 
   @override
-  State<_SettingsToggle> createState() => _SettingsToggleState();
-}
-
-class _SettingsToggleState extends State<_SettingsToggle> {
-  bool _value = true;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(notificationSettingsProvider).valueOrNull;
+    final isDemo = ref.watch(serverConfigProvider).isDemo;
+    final value = settings?[settingKey] ?? true;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -428,17 +431,29 @@ class _SettingsToggleState extends State<_SettingsToggle> {
       ),
       child: Row(
         children: [
-          Icon(widget.icon, color: Colors.grey, size: 20),
+          Icon(icon, color: Colors.grey, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              widget.title,
+              title,
               style: const TextStyle(color: Colors.white, fontSize: 13),
             ),
           ),
           Switch(
-            value: _value,
-            onChanged: (value) => setState(() => _value = value),
+            value: value,
+            onChanged: (enabled) async {
+              if (isDemo) {
+                return;
+              }
+              final next = {
+                ...?settings,
+                settingKey: enabled,
+              };
+              await ref
+                  .read(apiServiceProvider)
+                  .updateNotificationSettings(next);
+              ref.invalidate(notificationSettingsProvider);
+            },
             activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
         ],

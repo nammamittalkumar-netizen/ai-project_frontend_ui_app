@@ -11,6 +11,14 @@ const int defaultApiPort = 8000;
 const int defaultStreamPort = 8888;
 const int defaultAccentColorValue = 0xFFF44336;
 
+/// Keys for the "last known server" — these survive an explicit Disconnect so
+/// the SetupScreen can pre-fill the fields and auto-reconnect.
+const _kLastIp = 'last_server_ip';
+const _kLastApiPort = 'last_api_port';
+const _kLastStreamPort = 'last_stream_port';
+
+enum ConnectionStatus { connected, reconnecting, notConfigured }
+
 class AppAccentColor {
   final String name;
   final int value;
@@ -95,6 +103,23 @@ class ServerConfig {
   }
 }
 
+enum ServerConnectionState {
+  online,
+  offline,
+}
+
+class ServerConnection {
+  final ServerConnectionState state;
+  final DateTime checkedAt;
+
+  const ServerConnection({
+    required this.state,
+    required this.checkedAt,
+  });
+
+  bool get isOnline => state == ServerConnectionState.online;
+}
+
 final initialServerConfigProvider = Provider<ServerConfig?>((ref) => null);
 
 final serverConfigProvider =
@@ -138,6 +163,12 @@ class ServerConfigNotifier extends StateNotifier<ServerConfig> {
     await prefs.setInt('api_port', apiPort);
     await prefs.setInt('stream_port', streamPort);
 
+    // Persist last-known IP separately — NOT cleared on explicit Disconnect,
+    // so the SetupScreen can auto-fill and auto-reconnect later.
+    await prefs.setString(_kLastIp, ip.trim());
+    await prefs.setInt(_kLastApiPort, apiPort);
+    await prefs.setInt(_kLastStreamPort, streamPort);
+
     state = ServerConfig.fromParts(
       ip: ip,
       apiPort: apiPort,
@@ -169,15 +200,89 @@ final apiServiceProvider = Provider<ApiService>((ref) {
   return ApiService(baseUrl: config.apiUrl, streamUrl: config.streamUrl);
 });
 
-final camerasProvider = FutureProvider<List<Camera>>((ref) async {
+final serverConnectionProvider = StreamProvider<ServerConnection>((ref) async* {
   final config = ref.watch(serverConfigProvider);
   if (!config.isConfigured) {
-    return [];
+    yield ServerConnection(
+      state: ServerConnectionState.offline,
+      checkedAt: DateTime.now(),
+    );
+    return;
+  }
+
+  if (config.isDemo) {
+    yield ServerConnection(
+      state: ServerConnectionState.online,
+      checkedAt: DateTime.now(),
+    );
+    return;
+  }
+
+  final api = ref.watch(apiServiceProvider);
+  while (true) {
+    final online = await api.checkHealth();
+    yield ServerConnection(
+      state:
+          online ? ServerConnectionState.online : ServerConnectionState.offline,
+      checkedAt: DateTime.now(),
+    );
+    await Future<void>.delayed(const Duration(seconds: 5));
+  }
+});
+
+final camerasProvider = StreamProvider<List<Camera>>((ref) async* {
+  final config = ref.watch(serverConfigProvider);
+  if (!config.isConfigured) {
+    yield [];
+    return;
   }
   if (config.isDemo) {
-    return _demoCameras;
+    yield _demoCameras;
+    return;
   }
-  return ref.watch(apiServiceProvider).getCameras();
+
+  final api = ref.watch(apiServiceProvider);
+  while (true) {
+    yield await api.getCameras();
+    await Future<void>.delayed(const Duration(seconds: 5));
+  }
+});
+
+final statusProvider = StreamProvider<ServerStatus?>((ref) async* {
+  final config = ref.watch(serverConfigProvider);
+  if (!config.isConfigured || config.isDemo) {
+    yield null;
+    return;
+  }
+
+  final api = ref.watch(apiServiceProvider);
+  while (true) {
+    yield await api.getStatus();
+    await Future<void>.delayed(const Duration(seconds: 5));
+  }
+});
+
+final analyticsProvider = FutureProvider<AnalyticsSummary?>((ref) async {
+  final config = ref.watch(serverConfigProvider);
+  if (!config.isConfigured || config.isDemo) {
+    return null;
+  }
+  return ref.watch(apiServiceProvider).getAnalytics();
+});
+
+final notificationSettingsProvider =
+    FutureProvider<Map<String, bool>>((ref) async {
+  final config = ref.watch(serverConfigProvider);
+  if (!config.isConfigured || config.isDemo) {
+    return const {
+      'fire': true,
+      'smoke': true,
+      'liquid_spill': true,
+      'suspicious_activity': true,
+      'fall_down': true,
+    };
+  }
+  return ref.watch(apiServiceProvider).getNotificationSettings();
 });
 
 final alertsProvider = StreamProvider<List<Alert>>((ref) async* {
@@ -195,8 +300,19 @@ final alertsProvider = StreamProvider<List<Alert>>((ref) async* {
 
   final api = ref.watch(apiServiceProvider);
   while (true) {
-    yield await api.getAlerts();
-    await Future<void>.delayed(const Duration(seconds: 3));
+    var alerts = await api.getAlerts();
+    yield alerts;
+    try {
+      await for (final alert in api.watchAlerts()) {
+        alerts = [
+          alert,
+          ...alerts.where((item) => item.id != alert.id),
+        ].take(100).toList();
+        yield alerts;
+      }
+    } catch (_) {}
+
+    await Future<void>.delayed(const Duration(seconds: 5));
   }
 });
 
@@ -254,6 +370,45 @@ const _demoCameras = [
     isOnline: false,
   ),
 ];
+
+// ── Connection-status provider ─────────────────────────────────────────────
+//
+// Continuously polls the server and emits [ConnectionStatus].
+// Screens can watch this to show a reconnecting banner when the link drops.
+
+final connectionStatusProvider = StreamProvider<ConnectionStatus>((ref) async* {
+  final config = ref.watch(serverConfigProvider);
+
+  if (!config.isConfigured || config.isDemo) {
+    yield ConnectionStatus.notConfigured;
+    return;
+  }
+
+  final api = ref.watch(apiServiceProvider);
+  while (true) {
+    final healthy = await api.checkHealth();
+    yield healthy ? ConnectionStatus.connected : ConnectionStatus.reconnecting;
+    // Poll more aggressively when offline so the UI recovers quickly.
+    await Future<void>.delayed(Duration(seconds: healthy ? 10 : 5));
+  }
+});
+
+// ── Last-known IP helper ───────────────────────────────────────────────────
+//
+// Returns {ip, apiPort, streamPort} from prefs if the user has connected at
+// least once. Returns null if storage was fully wiped (fresh install or
+// manual app-data clear).
+
+Future<Map<String, Object>?> loadLastKnownServer() async {
+  final prefs = await SharedPreferences.getInstance();
+  final ip = prefs.getString(_kLastIp);
+  if (ip == null || ip.trim().isEmpty) return null;
+  return {
+    'ip': ip.trim(),
+    'apiPort': prefs.getInt(_kLastApiPort) ?? defaultApiPort,
+    'streamPort': prefs.getInt(_kLastStreamPort) ?? defaultStreamPort,
+  };
+}
 
 List<Alert> _demoAlerts() {
   final now = DateTime.now();

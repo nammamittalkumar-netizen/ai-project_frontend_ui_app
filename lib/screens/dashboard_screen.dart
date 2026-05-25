@@ -19,6 +19,9 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final camerasAsync = ref.watch(camerasProvider);
     final alertsAsync = ref.watch(alertsProvider);
+    final status = ref.watch(statusProvider).valueOrNull;
+    final connection = ref.watch(connectionStatusProvider).valueOrNull;
+    final isOffline = connection == ConnectionStatus.reconnecting;
     final isDemo =
         ref.watch(serverConfigProvider.select((config) => config.isDemo));
     final accentColor = Theme.of(context).colorScheme.primary;
@@ -61,6 +64,7 @@ class DashboardScreen extends ConsumerWidget {
         backgroundColor: const Color(0xFF1A1A1A),
         onRefresh: () async {
           ref.invalidate(camerasProvider);
+          ref.invalidate(statusProvider);
           await ref.read(camerasProvider.future);
         },
         child: camerasAsync.when(
@@ -79,6 +83,53 @@ class DashboardScreen extends ConsumerWidget {
             ],
           ),
           data: (cameras) {
+            if (isOffline) {
+              return ListView(
+                children: [
+                  SizedBox(height: MediaQuery.sizeOf(context).height * 0.2),
+                  const Center(
+                    child: Icon(
+                      Icons.cloud_off_rounded,
+                      color: Colors.grey,
+                      size: 54,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Center(
+                    child: Text(
+                      'Server unavailable',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Center(
+                    child: Text(
+                      'Check the Mini PC, network, or restart the server.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        ref.invalidate(connectionStatusProvider);
+                        ref.invalidate(camerasProvider);
+                        ref.invalidate(statusProvider);
+                        ref.invalidate(alertsProvider);
+                      },
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Retry'),
+                    ),
+                  ),
+                ],
+              );
+            }
+
             if (cameras.isEmpty) {
               return ListView(
                 children: [
@@ -95,6 +146,12 @@ class DashboardScreen extends ConsumerWidget {
 
             final onlineCount =
                 cameras.where((camera) => camera.isOnline).length;
+            final totalCount = cameras.length;
+            final eventsToday = status?.eventsToday ?? alertCount;
+            final aiDetections = status?.aiDetections ?? alertCount * 3;
+            final uptime = status == null
+                ? '98.5%'
+                : '${status.uptimePercent.toStringAsFixed(1)}%';
             return CustomScrollView(
               slivers: [
                 SliverPadding(
@@ -107,25 +164,25 @@ class DashboardScreen extends ConsumerWidget {
                     children: [
                       _StatTile(
                         icon: Icons.videocam_rounded,
-                        value: '$onlineCount/${cameras.length}',
+                        value: '$onlineCount/$totalCount',
                         label: 'Active Cameras',
                         color: Colors.lightBlueAccent,
                       ),
                       _StatTile(
                         icon: Icons.warning_amber_rounded,
-                        value: '$alertCount',
+                        value: '$eventsToday',
                         label: 'Events Today',
                         color: Colors.orangeAccent,
                       ),
                       _StatTile(
                         icon: Icons.psychology_rounded,
-                        value: '${alertCount * 3}',
+                        value: '$aiDetections',
                         label: 'AI Detections',
                         color: Colors.greenAccent,
                       ),
                       _StatTile(
                         icon: Icons.dns_rounded,
-                        value: '98.5%',
+                        value: uptime,
                         label: 'System Uptime',
                         color: accentColor,
                       ),

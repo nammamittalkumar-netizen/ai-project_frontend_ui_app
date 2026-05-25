@@ -21,7 +21,38 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       TextEditingController(text: '$defaultStreamPort');
 
   bool _isConnecting = false;
+  bool _autoConnecting = false; // true while the initial auto-reconnect runs
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _tryAutoReconnect();
+  }
+
+  /// On screen open, read the last-known server from storage.
+  /// If found → pre-fill the form and silently attempt to reconnect.
+  /// If storage is empty (fresh install or app-data cleared) → do nothing,
+  /// user must type manually.
+  Future<void> _tryAutoReconnect() async {
+    final saved = await loadLastKnownServer();
+    if (saved == null) return; // No stored IP → nothing to auto-fill
+    if (!mounted) return;
+
+    setState(() {
+      _ipController.text = saved['ip'] as String;
+      _apiPortController.text = '${saved['apiPort']}';
+      _streamPortController.text = '${saved['streamPort']}';
+      _autoConnecting = true;
+    });
+
+    // Kick off the connect flow automatically — same logic as pressing the button
+    await _connect();
+
+    if (mounted) {
+      setState(() => _autoConnecting = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -32,7 +63,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 
   Future<void> _connect() async {
-    if (!_formKey.currentState!.validate()) {
+    // Guard: form may not yet be built on first auto-connect attempt
+    if (_formKey.currentState == null || !_formKey.currentState!.validate()) {
       return;
     }
 
@@ -129,10 +161,12 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Connect directly to your Mini PC server.',
+                    Text(
+                      _autoConnecting
+                          ? 'Reconnecting to your server…'
+                          : 'Connect directly to your Mini PC server.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                      style: const TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                     const SizedBox(height: 28),
                     Container(
@@ -178,6 +212,27 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                               ),
                             ],
                           ),
+                          if (_autoConnecting && _error == null) ...[
+                            const SizedBox(height: 10),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.wifi_find_rounded,
+                                  size: 13,
+                                  color: Colors.grey[600],
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  'Using your saved server IP',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                           if (_error != null) ...[
                             const SizedBox(height: 12),
                             Text(

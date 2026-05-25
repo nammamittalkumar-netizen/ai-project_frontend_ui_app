@@ -242,10 +242,67 @@ class _MainShellState extends ConsumerState<MainShell> {
 
     return Scaffold(
       body: body,
-      bottomNavigationBar: _MainBottomNav(
-        currentIndex: _index,
-        onTap: _openBottomTab,
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Reconnect banner — visible only when server is unreachable
+          const _ReconnectBanner(),
+          _MainBottomNav(
+            currentIndex: _index,
+            onTap: _openBottomTab,
+          ),
+        ],
       ),
+    );
+  }
+}
+
+// ── Reconnect banner ──────────────────────────────────────────────────────
+// Shows between the main content and the bottom nav bar whenever the server
+// is unreachable. Disappears automatically once connectivity is restored.
+
+class _ReconnectBanner extends ConsumerWidget {
+  const _ReconnectBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statusAsync = ref.watch(connectionStatusProvider);
+    final isReconnecting =
+        statusAsync.valueOrNull == ConnectionStatus.reconnecting;
+
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeInOut,
+      child: isReconnecting
+          ? Container(
+              width: double.infinity,
+              color: const Color(0xFF1C1400),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+              child: const Row(
+                children: [
+                  SizedBox(
+                    width: 13,
+                    height: 13,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.orange,
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Server unreachable — reconnecting automatically…',
+                      style: TextStyle(
+                        color: Colors.orange,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : const SizedBox.shrink(),
     );
   }
 }

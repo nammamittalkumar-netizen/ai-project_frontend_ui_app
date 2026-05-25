@@ -61,11 +61,7 @@ class ReportsScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           ElevatedButton.icon(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content: Text(
-                        'Report export will be connected to the server API.')),
-              );
+              _generateReport(context, ref);
             },
             icon: const Icon(Icons.download_rounded),
             label: const Text('Generate Report'),
@@ -80,6 +76,18 @@ class ReportsScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _generateReport(BuildContext context, WidgetRef ref) async {
+    final report =
+        await ref.read(apiServiceProvider).getReport('alert-summary');
+    if (!context.mounted) {
+      return;
+    }
+    final count = report?['total_alerts']?.toString() ?? '0';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Alert summary loaded: $count alerts')),
     );
   }
 }

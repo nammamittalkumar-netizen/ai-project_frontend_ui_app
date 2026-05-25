@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../models/alert.dart';
 import '../providers/providers.dart';
 import '../widgets/main_overflow_menu.dart';
 
@@ -22,6 +23,8 @@ class AiSearchScreen extends ConsumerStatefulWidget {
 class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
   final _controller = TextEditingController();
   String _query = '';
+  List<Alert> _results = const [];
+  bool _isSearching = false;
 
   static const _popularSearches = [
     'All deliveries this week',
@@ -39,7 +42,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final alerts = ref.watch(alertsProvider).valueOrNull ?? [];
+    final fallbackAlerts = ref.watch(alertsProvider).valueOrNull ?? [];
     final accentColor = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
@@ -102,9 +105,18 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: _search,
-                    icon: const Icon(Icons.search_rounded),
-                    label: const Text('Search'),
+                    onPressed: _isSearching ? null : _search,
+                    icon: _isSearching
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.search_rounded),
+                    label: Text(_isSearching ? 'Searching...' : 'Search'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: accentColor,
                       foregroundColor: Colors.white,
@@ -121,10 +133,10 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
           const SizedBox(height: 18),
           if (_query.isNotEmpty) ...[
             const _SectionTitle('Search Results'),
-            if (alerts.isEmpty)
+            if ((_results.isEmpty ? fallbackAlerts : _results).isEmpty)
               const _EmptyResult()
             else
-              ...alerts.take(5).map(
+              ...(_results.isEmpty ? fallbackAlerts : _results).take(5).map(
                     (alert) => Container(
                       margin: const EdgeInsets.only(bottom: 10),
                       padding: const EdgeInsets.all(12),
@@ -195,12 +207,26 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
     );
   }
 
-  void _search() {
+  Future<void> _search() async {
     final value = _controller.text.trim();
     if (value.isEmpty) {
       return;
     }
-    setState(() => _query = value);
+    setState(() {
+      _query = value;
+      _isSearching = true;
+    });
+    final config = ref.read(serverConfigProvider);
+    final results = config.isDemo
+        ? ref.read(alertsProvider).valueOrNull ?? const <Alert>[]
+        : await ref.read(apiServiceProvider).searchAlerts(value);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _results = results;
+      _isSearching = false;
+    });
   }
 }
 

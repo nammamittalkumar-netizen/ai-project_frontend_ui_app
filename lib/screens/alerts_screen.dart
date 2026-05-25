@@ -20,6 +20,8 @@ class AlertsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final alertsAsync = ref.watch(alertsProvider);
+    final connection = ref.watch(connectionStatusProvider).valueOrNull;
+    final isOffline = connection == ConnectionStatus.reconnecting;
     final accentColor = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
@@ -59,6 +61,38 @@ class AlertsScreen extends ConsumerWidget {
             ],
           ),
           data: (alerts) {
+            if (isOffline) {
+              return ListView(
+                children: [
+                  SizedBox(height: MediaQuery.sizeOf(context).height * 0.25),
+                  const Icon(
+                    Icons.cloud_off_rounded,
+                    color: Colors.grey,
+                    size: 56,
+                  ),
+                  const SizedBox(height: 12),
+                  const Center(
+                    child: Text(
+                      'Alerts paused',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Center(
+                    child: Text(
+                      'Server is offline. The app will reconnect automatically.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                ],
+              );
+            }
+
             if (alerts.isEmpty) {
               return ListView(
                 children: [

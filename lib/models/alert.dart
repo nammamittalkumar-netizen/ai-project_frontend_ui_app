@@ -22,12 +22,14 @@ class Alert {
   factory Alert.fromJson(Map<String, dynamic> json) {
     return Alert(
       id: json['id']?.toString() ?? '',
-      type: _parseType(json['type']?.toString()),
+      type: _parseType(
+        json['type']?.toString() ?? json['detection_type']?.toString(),
+      ),
       cameraId: json['camera_id']?.toString() ?? '',
       cameraName: json['camera_name']?.toString() ?? 'Unknown Camera',
       timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ??
           DateTime.now(),
-      clipUrl: json['clip_url']?.toString(),
+      clipUrl: json['clip_url']?.toString() ?? json['video_url']?.toString(),
     );
   }
 
@@ -40,7 +42,9 @@ class Alert {
       case 'liquid_spill':
         return AlertType.liquidSpill;
       case 'fall':
+      case 'fall_down':
         return AlertType.fall;
+      case 'suspicious_activity':
       case 'suspicious':
       default:
         return AlertType.suspicious;
