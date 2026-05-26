@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
 
-enum AlertType { fire, smoke, liquidSpill, suspicious, fall }
+enum AlertType {
+  fire,
+  smoke,
+  liquidSpill,
+  suspicious,
+  fall,
+  cameraOffline,
+  cameraOnline,
+  storageWarning,
+  storageCritical,
+}
 
 class Alert {
   final String id;
@@ -44,6 +54,14 @@ class Alert {
       case 'fall':
       case 'fall_down':
         return AlertType.fall;
+      case 'camera_offline':
+        return AlertType.cameraOffline;
+      case 'camera_online':
+        return AlertType.cameraOnline;
+      case 'storage_warning':
+        return AlertType.storageWarning;
+      case 'storage_critical':
+        return AlertType.storageCritical;
       case 'suspicious_activity':
       case 'suspicious':
       default:
@@ -63,6 +81,14 @@ class Alert {
         return 'Suspicious Activity';
       case AlertType.fall:
         return 'Person Fall';
+      case AlertType.cameraOffline:
+        return 'Camera Offline';
+      case AlertType.cameraOnline:
+        return 'Camera Online';
+      case AlertType.storageWarning:
+        return 'Storage Warning';
+      case AlertType.storageCritical:
+        return 'Storage Critical';
     }
   }
 
@@ -78,6 +104,14 @@ class Alert {
         return 'Watch';
       case AlertType.fall:
         return 'Fall';
+      case AlertType.cameraOffline:
+        return 'Offline';
+      case AlertType.cameraOnline:
+        return 'Online';
+      case AlertType.storageWarning:
+        return 'Storage';
+      case AlertType.storageCritical:
+        return 'Storage';
     }
   }
 
@@ -95,6 +129,14 @@ class Alert {
         return Colors.purpleAccent;
       case AlertType.fall:
         return Colors.red;
+      case AlertType.cameraOffline:
+        return Colors.deepOrange;
+      case AlertType.cameraOnline:
+        return Colors.green;
+      case AlertType.storageWarning:
+        return Colors.amber;
+      case AlertType.storageCritical:
+        return Colors.redAccent;
     }
   }
 
@@ -110,6 +152,14 @@ class Alert {
         return Icons.visibility_rounded;
       case AlertType.fall:
         return Icons.personal_injury_rounded;
+      case AlertType.cameraOffline:
+        return Icons.videocam_off_rounded;
+      case AlertType.cameraOnline:
+        return Icons.videocam_rounded;
+      case AlertType.storageWarning:
+        return Icons.storage_rounded;
+      case AlertType.storageCritical:
+        return Icons.sd_storage_rounded;
     }
   }
 }

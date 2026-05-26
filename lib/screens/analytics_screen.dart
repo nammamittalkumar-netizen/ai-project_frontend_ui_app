@@ -168,6 +168,10 @@ class AnalyticsScreen extends ConsumerWidget {
       AlertType.liquidSpill => 'liquid_spill',
       AlertType.suspicious => 'suspicious_activity',
       AlertType.fall => 'person_fall',
+      AlertType.cameraOffline => 'camera_offline',
+      AlertType.cameraOnline => 'camera_online',
+      AlertType.storageWarning => 'storage_warning',
+      AlertType.storageCritical => 'storage_critical',
     };
     return analytics?.topCategories[key] ??
         alerts.where((alert) => alert.type == type).length;

@@ -284,6 +284,44 @@ class ApiService {
     return values;
   }
 
+  Future<StorageStatus?> getStorageStatus() async {
+    if (baseUrl.isEmpty) {
+      return null;
+    }
+
+    try {
+      final response = await http
+          .get(Uri.parse('$baseUrl/api/storage'))
+          .timeout(const Duration(seconds: 5));
+      if (response.statusCode != 200) {
+        return null;
+      }
+      final body = jsonDecode(response.body);
+      return body is Map<String, dynamic> ? StorageStatus.fromJson(body) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<CleanupResult?> cleanupStorage() async {
+    if (baseUrl.isEmpty) {
+      return null;
+    }
+
+    try {
+      final response = await http
+          .post(Uri.parse('$baseUrl/api/storage/cleanup'))
+          .timeout(const Duration(seconds: 20));
+      if (response.statusCode != 200) {
+        return null;
+      }
+      final body = jsonDecode(response.body);
+      return body is Map<String, dynamic> ? CleanupResult.fromJson(body) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> getReport(String reportName) async {
     if (baseUrl.isEmpty) {
       return null;
@@ -421,6 +459,81 @@ class RecordingItem {
   }
 }
 
+class StorageStatus {
+  final String status;
+  final String path;
+  final int totalBytes;
+  final int usedBytes;
+  final int freeBytes;
+  final double usedPercent;
+  final double freePercent;
+  final int warningUsedPercent;
+  final int criticalUsedPercent;
+  final int retentionValue;
+  final String retentionUnit;
+
+  const StorageStatus({
+    required this.status,
+    required this.path,
+    required this.totalBytes,
+    required this.usedBytes,
+    required this.freeBytes,
+    required this.usedPercent,
+    required this.freePercent,
+    required this.warningUsedPercent,
+    required this.criticalUsedPercent,
+    required this.retentionValue,
+    required this.retentionUnit,
+  });
+
+  factory StorageStatus.fromJson(Map<String, dynamic> json) {
+    final retention = json['retention'];
+    final retentionMap =
+        retention is Map<String, dynamic> ? retention : <String, dynamic>{};
+    return StorageStatus(
+      status: json['status']?.toString() ?? 'unknown',
+      path: json['path']?.toString() ?? '',
+      totalBytes: _asInt(json['total_bytes']),
+      usedBytes: _asInt(json['used_bytes']),
+      freeBytes: _asInt(json['free_bytes']),
+      usedPercent: _asDouble(json['used_percent']),
+      freePercent: _asDouble(json['free_percent']),
+      warningUsedPercent: _asInt(json['warning_used_percent']),
+      criticalUsedPercent: _asInt(json['critical_used_percent']),
+      retentionValue: _asInt(retentionMap['value']),
+      retentionUnit: retentionMap['unit']?.toString() ?? 'days',
+    );
+  }
+
+  String get freeText => _formatBytes(freeBytes);
+  String get totalText => _formatBytes(totalBytes);
+  String get usedText => _formatBytes(usedBytes);
+  String get retentionText => '$retentionValue $retentionUnit';
+}
+
+class CleanupResult {
+  final String status;
+  final int deletedFiles;
+  final int deletedEvents;
+  final int deletedRecordings;
+
+  const CleanupResult({
+    required this.status,
+    required this.deletedFiles,
+    required this.deletedEvents,
+    required this.deletedRecordings,
+  });
+
+  factory CleanupResult.fromJson(Map<String, dynamic> json) {
+    return CleanupResult(
+      status: json['status']?.toString() ?? 'unknown',
+      deletedFiles: _asInt(json['deleted_files']),
+      deletedEvents: _asInt(json['deleted_events']),
+      deletedRecordings: _asInt(json['deleted_recordings']),
+    );
+  }
+}
+
 int _asInt(Object? value) {
   if (value is int) {
     return value;
@@ -436,4 +549,15 @@ double _asDouble(Object? value) {
     return value.toDouble();
   }
   return double.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+String _formatBytes(int bytes) {
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  var size = bytes.toDouble();
+  var unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+  return '${size.toStringAsFixed(unitIndex == 0 ? 0 : 1)} ${units[unitIndex]}';
 }

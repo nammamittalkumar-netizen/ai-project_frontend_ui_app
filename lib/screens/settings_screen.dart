@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/providers.dart';
+import '../services/api_service.dart';
 import '../widgets/main_overflow_menu.dart';
 import 'setup_screen.dart';
 
@@ -75,6 +76,9 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 24),
+          const _SectionTitle('Storage'),
+          const _StoragePanel(),
+          const SizedBox(height: 24),
           const _SectionTitle('Notifications'),
           const _SettingsToggle(
             settingKey: 'fire',
@@ -100,6 +104,26 @@ class SettingsScreen extends ConsumerWidget {
             settingKey: 'fall_down',
             title: 'Fall Detection',
             icon: Icons.personal_injury_rounded,
+          ),
+          const _SettingsToggle(
+            settingKey: 'camera_offline',
+            title: 'Camera Offline',
+            icon: Icons.videocam_off_rounded,
+          ),
+          const _SettingsToggle(
+            settingKey: 'camera_online',
+            title: 'Camera Recovery',
+            icon: Icons.videocam_rounded,
+          ),
+          const _SettingsToggle(
+            settingKey: 'storage_warning',
+            title: 'Storage Warning',
+            icon: Icons.storage_rounded,
+          ),
+          const _SettingsToggle(
+            settingKey: 'storage_critical',
+            title: 'Storage Critical',
+            icon: Icons.sd_storage_rounded,
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
@@ -402,6 +426,160 @@ class _AccentColorPicker extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+class _StoragePanel extends ConsumerStatefulWidget {
+  const _StoragePanel();
+
+  @override
+  ConsumerState<_StoragePanel> createState() => _StoragePanelState();
+}
+
+class _StoragePanelState extends ConsumerState<_StoragePanel> {
+  late Future<StorageStatus?> _future;
+  bool _cleaning = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = ref.read(apiServiceProvider).getStorageStatus();
+  }
+
+  void _refresh() {
+    setState(() {
+      _future = ref.read(apiServiceProvider).getStorageStatus();
+    });
+  }
+
+  Future<void> _cleanup() async {
+    setState(() => _cleaning = true);
+    final result = await ref.read(apiServiceProvider).cleanupStorage();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _cleaning = false;
+      _future = ref.read(apiServiceProvider).getStorageStatus();
+    });
+    final text = result == null
+        ? 'Cleanup failed'
+        : 'Cleanup complete: ${result.deletedFiles} files, '
+            '${result.deletedEvents} events, '
+            '${result.deletedRecordings} recordings removed';
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDemo = ref.watch(serverConfigProvider).isDemo;
+    return FutureBuilder<StorageStatus?>(
+      future: _future,
+      builder: (context, snapshot) {
+        final storage = snapshot.data;
+        final isLoading = snapshot.connectionState == ConnectionState.waiting;
+        final statusColor = _statusColor(storage?.status);
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFF2A2A2A)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.storage_rounded, color: statusColor, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      storage == null
+                          ? 'Storage'
+                          : 'Storage ${storage.usedPercent.toStringAsFixed(1)}% used',
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: isLoading ? null : _refresh,
+                    icon: const Icon(Icons.refresh_rounded),
+                    color: Colors.white70,
+                    tooltip: 'Refresh storage',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  minHeight: 8,
+                  value: storage == null ? 0 : storage.usedPercent / 100,
+                  backgroundColor: const Color(0xFF2A2A2A),
+                  valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                storage == null
+                    ? isLoading
+                        ? 'Loading storage status...'
+                        : 'Storage status unavailable'
+                    : '${storage.freeText} free of ${storage.totalText} | '
+                        'Retention: ${storage.retentionText}',
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+              if (storage != null && storage.path.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  storage.path,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                ),
+              ],
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: isDemo || _cleaning ? null : _cleanup,
+                      icon: _cleaning
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.cleaning_services_rounded),
+                      label: Text(_cleaning ? 'Cleaning...' : 'Clean Old Data'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFF2A2A2A)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Color _statusColor(String? status) {
+    switch (status) {
+      case 'critical':
+        return Colors.redAccent;
+      case 'warning':
+        return Colors.amber;
+      default:
+        return Colors.greenAccent;
+    }
   }
 }
 
