@@ -199,7 +199,10 @@ class _MainShellState extends ConsumerState<MainShell> {
           showDialog<void>(
             context: context,
             barrierDismissible: false,
-            builder: (_) => AlertPopup(alert: latest),
+            builder: (_) => AlertPopup(
+              alert: latest,
+              onViewAlert: () => _openBottomTab(4),
+            ),
           );
         });
       });

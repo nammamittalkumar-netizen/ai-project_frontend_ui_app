@@ -471,6 +471,14 @@ class StorageStatus {
   final int criticalUsedPercent;
   final int retentionValue;
   final String retentionUnit;
+  // Per-directory breakdown
+  final int recordingsCount;
+  final int recordingsSizeBytes;
+  final int clipsCount;
+  final int clipsSizeBytes;
+  final int snapshotsCount;
+  final int snapshotsSizeBytes;
+  final double? oldestFileDays;
 
   const StorageStatus({
     required this.status,
@@ -484,6 +492,13 @@ class StorageStatus {
     required this.criticalUsedPercent,
     required this.retentionValue,
     required this.retentionUnit,
+    this.recordingsCount = 0,
+    this.recordingsSizeBytes = 0,
+    this.clipsCount = 0,
+    this.clipsSizeBytes = 0,
+    this.snapshotsCount = 0,
+    this.snapshotsSizeBytes = 0,
+    this.oldestFileDays,
   });
 
   factory StorageStatus.fromJson(Map<String, dynamic> json) {
@@ -502,6 +517,15 @@ class StorageStatus {
       criticalUsedPercent: _asInt(json['critical_used_percent']),
       retentionValue: _asInt(retentionMap['value']),
       retentionUnit: retentionMap['unit']?.toString() ?? 'days',
+      recordingsCount: _asInt(json['recordings_count']),
+      recordingsSizeBytes: _asInt(json['recordings_size_bytes']),
+      clipsCount: _asInt(json['clips_count']),
+      clipsSizeBytes: _asInt(json['clips_size_bytes']),
+      snapshotsCount: _asInt(json['snapshots_count']),
+      snapshotsSizeBytes: _asInt(json['snapshots_size_bytes']),
+      oldestFileDays: json['oldest_file_days'] != null
+          ? _asDouble(json['oldest_file_days'])
+          : null,
     );
   }
 
@@ -509,6 +533,9 @@ class StorageStatus {
   String get totalText => _formatBytes(totalBytes);
   String get usedText => _formatBytes(usedBytes);
   String get retentionText => '$retentionValue $retentionUnit';
+  String get recordingsSizeText => _formatBytes(recordingsSizeBytes);
+  String get clipsSizeText => _formatBytes(clipsSizeBytes);
+  String get snapshotsSizeText => _formatBytes(snapshotsSizeBytes);
 }
 
 class CleanupResult {
@@ -516,12 +543,16 @@ class CleanupResult {
   final int deletedFiles;
   final int deletedEvents;
   final int deletedRecordings;
+  // true when the server had to delete files younger than the retention window
+  // in order to free critical disk space.
+  final bool emergencyCleanup;
 
   const CleanupResult({
     required this.status,
     required this.deletedFiles,
     required this.deletedEvents,
     required this.deletedRecordings,
+    this.emergencyCleanup = false,
   });
 
   factory CleanupResult.fromJson(Map<String, dynamic> json) {
@@ -530,6 +561,7 @@ class CleanupResult {
       deletedFiles: _asInt(json['deleted_files']),
       deletedEvents: _asInt(json['deleted_events']),
       deletedRecordings: _asInt(json['deleted_recordings']),
+      emergencyCleanup: json['emergency_cleanup'] == true,
     );
   }
 }

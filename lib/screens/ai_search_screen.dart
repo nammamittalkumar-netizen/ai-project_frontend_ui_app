@@ -27,11 +27,11 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
   bool _isSearching = false;
 
   static const _popularSearches = [
-    'All deliveries this week',
-    'Unauthorized access attempts',
-    'After hours activity',
-    'Package detections',
-    'Vehicle count today',
+    'Fire detections this week',
+    'Suspicious activity today',
+    'Fall detected yesterday',
+    'Smoke alerts this month',
+    'Camera offline events',
   ];
 
   @override
@@ -136,7 +136,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
             if ((_results.isEmpty ? fallbackAlerts : _results).isEmpty)
               const _EmptyResult()
             else
-              ...(_results.isEmpty ? fallbackAlerts : _results).take(5).map(
+              ...(_results.isEmpty ? fallbackAlerts : _results).map(
                     (alert) => Container(
                       margin: const EdgeInsets.only(bottom: 10),
                       padding: const EdgeInsets.all(12),
@@ -162,7 +162,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
                                 ),
                                 const SizedBox(height: 3),
                                 Text(
-                                  '${alert.cameraName} - ${DateFormat('MMM d, hh:mm a').format(alert.timestamp)}',
+                                  '${alert.cameraName} · ${DateFormat('MMM d, hh:mm a').format(alert.timestamp)}',
                                   style: const TextStyle(
                                     color: Colors.grey,
                                     fontSize: 12,
@@ -171,13 +171,14 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
                               ],
                             ),
                           ),
-                          Text(
-                            '94%',
-                            style: TextStyle(
-                              color: accentColor,
-                              fontWeight: FontWeight.w700,
+                          if (alert.confidence > 0)
+                            Text(
+                              '${(alert.confidence * 100).toStringAsFixed(0)}%',
+                              style: TextStyle(
+                                color: accentColor,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ),

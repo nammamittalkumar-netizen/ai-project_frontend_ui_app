@@ -280,6 +280,10 @@ final notificationSettingsProvider =
       'liquid_spill': true,
       'suspicious_activity': true,
       'fall_down': true,
+      'camera_offline': true,
+      'camera_online': true,
+      'storage_warning': true,
+      'storage_critical': true,
     };
   }
   return ref.watch(apiServiceProvider).getNotificationSettings();

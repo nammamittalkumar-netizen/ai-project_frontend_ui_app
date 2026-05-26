@@ -8,8 +8,11 @@ import '../models/alert.dart';
 
 class AlertPopup extends StatefulWidget {
   final Alert alert;
+  // Called when user taps "View Alert" — navigates to the Alerts tab.
+  // Optional: if null (e.g. already on Alerts screen) just dismisses.
+  final VoidCallback? onViewAlert;
 
-  const AlertPopup({super.key, required this.alert});
+  const AlertPopup({super.key, required this.alert, this.onViewAlert});
 
   @override
   State<AlertPopup> createState() => _AlertPopupState();
@@ -192,7 +195,10 @@ class _AlertPopupState extends State<AlertPopup> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
+                    onPressed: () {
+                      Navigator.of(context).maybePop();
+                      widget.onViewAlert?.call();
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.primary,
                       foregroundColor: Colors.white,

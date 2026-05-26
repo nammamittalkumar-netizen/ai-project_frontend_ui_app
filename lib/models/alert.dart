@@ -19,6 +19,7 @@ class Alert {
   final String cameraName;
   final DateTime timestamp;
   final String? clipUrl;
+  final double confidence;
 
   const Alert({
     required this.id,
@@ -27,6 +28,7 @@ class Alert {
     required this.cameraName,
     required this.timestamp,
     this.clipUrl,
+    this.confidence = 0,
   });
 
   factory Alert.fromJson(Map<String, dynamic> json) {
@@ -40,6 +42,7 @@ class Alert {
       timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ??
           DateTime.now(),
       clipUrl: json['clip_url']?.toString() ?? json['video_url']?.toString(),
+      confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
     );
   }
 

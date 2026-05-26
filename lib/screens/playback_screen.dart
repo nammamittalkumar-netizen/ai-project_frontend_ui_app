@@ -30,6 +30,7 @@ class _PlaybackScreenState extends ConsumerState<PlaybackScreen> {
   bool _loadingRecordings = false;
   List<RecordingItem> _recordings = const [];
   VideoPlayerController? _videoController;
+  int _currentRecordingIndex = -1;
 
   @override
   void dispose() {
@@ -124,9 +125,15 @@ class _PlaybackScreenState extends ConsumerState<PlaybackScreen> {
                 Row(
                   children: [
                     IconButton(
-                      onPressed: () {},
+                      onPressed: _currentRecordingIndex > 0
+                          ? () => _playRecording(
+                                _recordings[_currentRecordingIndex - 1],
+                              )
+                          : null,
                       icon: const Icon(Icons.skip_previous_rounded),
-                      color: Colors.white,
+                      color: _currentRecordingIndex > 0
+                          ? Colors.white
+                          : Colors.white24,
                     ),
                     IconButton.filled(
                       onPressed: _togglePlayback,
@@ -140,9 +147,18 @@ class _PlaybackScreenState extends ConsumerState<PlaybackScreen> {
                       ),
                     ),
                     IconButton(
-                      onPressed: () {},
+                      onPressed: _currentRecordingIndex >= 0 &&
+                              _currentRecordingIndex <
+                                  _recordings.length - 1
+                          ? () => _playRecording(
+                                _recordings[_currentRecordingIndex + 1],
+                              )
+                          : null,
                       icon: const Icon(Icons.skip_next_rounded),
-                      color: Colors.white,
+                      color: _currentRecordingIndex >= 0 &&
+                              _currentRecordingIndex < _recordings.length - 1
+                          ? Colors.white
+                          : Colors.white24,
                     ),
                     Expanded(
                       child: Slider(
@@ -330,6 +346,7 @@ class _PlaybackScreenState extends ConsumerState<PlaybackScreen> {
     setState(() {
       _recordings = recordings;
       _loadingRecordings = false;
+      _currentRecordingIndex = -1;
     });
   }
 
@@ -340,6 +357,7 @@ class _PlaybackScreenState extends ConsumerState<PlaybackScreen> {
     setState(() {
       _videoController = controller;
       _playing = false;
+      _currentRecordingIndex = _recordings.indexOf(recording);
     });
     await oldController?.dispose();
     await controller.initialize();
