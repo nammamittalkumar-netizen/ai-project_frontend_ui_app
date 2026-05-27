@@ -215,6 +215,7 @@ class SettingsScreen extends ConsumerWidget {
                     );
                 ref.invalidate(camerasProvider);
                 ref.invalidate(alertsProvider);
+                ref.invalidate(storageStatusProvider);
                 if (dialogContext.mounted) {
                   Navigator.of(dialogContext).pop();
                 }
@@ -237,6 +238,7 @@ class SettingsScreen extends ConsumerWidget {
     ref.read(lastAlertIdProvider.notifier).state = null;
     ref.invalidate(camerasProvider);
     ref.invalidate(alertsProvider);
+    ref.invalidate(storageStatusProvider);
 
     if (!context.mounted) {
       return;
@@ -437,19 +439,10 @@ class _StoragePanel extends ConsumerStatefulWidget {
 }
 
 class _StoragePanelState extends ConsumerState<_StoragePanel> {
-  late Future<StorageStatus?> _future;
   bool _cleaning = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _future = ref.read(apiServiceProvider).getStorageStatus();
-  }
-
   void _refresh() {
-    setState(() {
-      _future = ref.read(apiServiceProvider).getStorageStatus();
-    });
+    ref.invalidate(storageStatusProvider);
   }
 
   Future<void> _cleanup(StorageStatus? storage) async {
@@ -462,10 +455,8 @@ class _StoragePanelState extends ConsumerState<_StoragePanel> {
     setState(() => _cleaning = true);
     final result = await ref.read(apiServiceProvider).cleanupStorage();
     if (!mounted) return;
-    setState(() {
-      _cleaning = false;
-      _future = ref.read(apiServiceProvider).getStorageStatus();
-    });
+    setState(() => _cleaning = false);
+    ref.invalidate(storageStatusProvider);
 
     final String text;
     if (result == null) {
@@ -519,7 +510,7 @@ class _StoragePanelState extends ConsumerState<_StoragePanel> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Free Space Now',
+            child: const Text('Emergency Cleanup',
                 style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -542,7 +533,7 @@ class _StoragePanelState extends ConsumerState<_StoragePanel> {
     final label = _cleaning
         ? 'Cleaning...'
         : isCritical
-            ? 'Free Space Now'
+            ? 'Emergency Cleanup'
             : 'Clean Old Data';
     final icon = _cleaning
         ? const SizedBox(
@@ -576,158 +567,174 @@ class _StoragePanelState extends ConsumerState<_StoragePanel> {
   @override
   Widget build(BuildContext context) {
     final isDemo = ref.watch(serverConfigProvider).isDemo;
-    return FutureBuilder<StorageStatus?>(
-      future: _future,
-      builder: (context, snapshot) {
-        final storage = snapshot.data;
-        final isLoading = snapshot.connectionState == ConnectionState.waiting;
-        final statusColor = _statusColor(storage?.status);
-        final isCritical = storage?.status == 'critical';
-        final isWarning = storage?.status == 'warning';
+    final storageAsync = ref.watch(storageStatusProvider);
+    final storage = storageAsync.valueOrNull;
+    final isLoading = storageAsync.isLoading && storage == null;
+    final hasError = storageAsync.hasError && storage == null;
+    final statusColor = _statusColor(storage?.status);
+    final isCritical = storage?.status == 'critical';
+    final isWarning = storage?.status == 'warning';
 
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1A),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isCritical
-                  ? Colors.redAccent.withValues(alpha: 0.5)
-                  : isWarning
-                      ? Colors.amber.withValues(alpha: 0.4)
-                      : const Color(0xFF2A2A2A),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isCritical
+              ? Colors.redAccent.withValues(alpha: 0.5)
+              : isWarning
+                  ? Colors.amber.withValues(alpha: 0.4)
+                  : const Color(0xFF2A2A2A),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header row ───────────────────────────
+          Row(
             children: [
-              // ── Header row ───────────────────────────
-              Row(
-                children: [
-                  Icon(Icons.storage_rounded, color: statusColor, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      storage == null
-                          ? 'Storage'
-                          : 'Storage  ${storage.usedPercent.toStringAsFixed(1)}% used',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+              Icon(Icons.storage_rounded, color: statusColor, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  storage == null
+                      ? 'Storage'
+                      : 'Storage  ${storage.usedPercent.toStringAsFixed(1)}% used',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
                   ),
-                  if (storage != null) _StorageStatusBadge(status: storage.status),
-                  const SizedBox(width: 4),
-                  SizedBox(
-                    width: 32,
-                    height: 32,
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      onPressed: isLoading ? null : _refresh,
-                      icon: const Icon(Icons.refresh_rounded, size: 18),
-                      color: Colors.white54,
-                      tooltip: 'Refresh',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // ── Progress bar ─────────────────────────
-              ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: LinearProgressIndicator(
-                  minHeight: 10,
-                  value: storage == null ? 0 : storage.usedPercent / 100,
-                  backgroundColor: const Color(0xFF2A2A2A),
-                  valueColor: AlwaysStoppedAnimation<Color>(statusColor),
                 ),
               ),
-              const SizedBox(height: 12),
-
-              // ── Used / Free / Total ──────────────────
-              if (storage != null)
-                Row(
-                  children: [
-                    _StorageStatBox(label: 'Used', value: storage.usedText, color: statusColor),
-                    const SizedBox(width: 8),
-                    _StorageStatBox(label: 'Free', value: storage.freeText, color: Colors.white70),
-                    const SizedBox(width: 8),
-                    _StorageStatBox(label: 'Total', value: storage.totalText, color: Colors.white38),
-                  ],
-                )
-              else
-                Text(
-                  isLoading ? 'Loading storage info...' : 'Storage info unavailable',
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-
-              // ── Breakdown: recordings / clips / snapshots ──
-              if (storage != null &&
-                  (storage.recordingsCount > 0 ||
-                      storage.clipsCount > 0 ||
-                      storage.snapshotsCount > 0)) ...[
-                const SizedBox(height: 14),
-                const _StorageDivider(),
-                const SizedBox(height: 10),
-                _StorageBreakdownRow(
-                  icon: Icons.videocam_rounded,
-                  label: 'Recordings',
-                  size: storage.recordingsSizeText,
-                  count: storage.recordingsCount,
-                ),
-                const SizedBox(height: 6),
-                _StorageBreakdownRow(
-                  icon: Icons.movie_filter_rounded,
-                  label: 'Alert Clips',
-                  size: storage.clipsSizeText,
-                  count: storage.clipsCount,
-                ),
-                const SizedBox(height: 6),
-                _StorageBreakdownRow(
-                  icon: Icons.photo_camera_rounded,
-                  label: 'Snapshots',
-                  size: storage.snapshotsSizeText,
-                  count: storage.snapshotsCount,
-                ),
-              ],
-
-              // ── Info: oldest file age + retention + path ──
+              if (storage != null) _StorageStatusBadge(status: storage.status),
               if (storage != null) ...[
-                const SizedBox(height: 12),
-                const _StorageDivider(),
-                const SizedBox(height: 8),
-                if (storage.oldestFileDays != null)
-                  _StorageInfoRow(
-                    icon: Icons.access_time_rounded,
-                    text:
-                        'Oldest file: ${storage.oldestFileDays!.toStringAsFixed(1)} days old',
-                  ),
-                _StorageInfoRow(
-                  icon: Icons.autorenew_rounded,
-                  text: 'Auto-cleanup every ${storage.retentionText}',
-                ),
-                if (storage.path.isNotEmpty)
-                  _StorageInfoRow(
-                    icon: Icons.folder_outlined,
-                    text: storage.path,
-                    overflow: true,
-                  ),
+                const SizedBox(width: 6),
+                const _StorageLiveBadge(),
               ],
-              const SizedBox(height: 12),
-
-              // ── Cleanup button ───────────────────────
+              const SizedBox(width: 4),
               SizedBox(
-                width: double.infinity,
-                child: _buildCleanupButton(context, isDemo, storage),
+                width: 32,
+                height: 32,
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: isLoading ? null : _refresh,
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  color: Colors.white54,
+                  tooltip: 'Refresh',
+                ),
               ),
             ],
           ),
-        );
-      },
+          const SizedBox(height: 12),
+
+          // ── Progress bar ─────────────────────────
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 10,
+              value: storage == null ? 0 : storage.usedPercent / 100,
+              backgroundColor: const Color(0xFF2A2A2A),
+              valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // ── Used / Free / Total ──────────────────
+          if (storage != null)
+            Row(
+              children: [
+                _StorageStatBox(
+                    label: 'Used', value: storage.usedText, color: statusColor),
+                const SizedBox(width: 8),
+                _StorageStatBox(
+                    label: 'Free',
+                    value: storage.freeText,
+                    color: Colors.white70),
+                const SizedBox(width: 8),
+                _StorageStatBox(
+                    label: 'Total',
+                    value: storage.totalText,
+                    color: Colors.white38),
+              ],
+            )
+          else
+            Text(
+              isLoading
+                  ? 'Loading storage info...'
+                  : hasError
+                      ? 'Live storage connection unavailable'
+                      : 'Storage info unavailable',
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+
+          // ── Breakdown: recordings / clips / snapshots ──
+          if (storage != null &&
+              (storage.recordingsCount > 0 ||
+                  storage.clipsCount > 0 ||
+                  storage.snapshotsCount > 0)) ...[
+            const SizedBox(height: 14),
+            const _StorageDivider(),
+            const SizedBox(height: 10),
+            _StorageBreakdownRow(
+              icon: Icons.videocam_rounded,
+              label: 'Recordings',
+              size: storage.recordingsSizeText,
+              count: storage.recordingsCount,
+            ),
+            const SizedBox(height: 6),
+            _StorageBreakdownRow(
+              icon: Icons.movie_filter_rounded,
+              label: 'Alert Clips',
+              size: storage.clipsSizeText,
+              count: storage.clipsCount,
+            ),
+            const SizedBox(height: 6),
+            _StorageBreakdownRow(
+              icon: Icons.photo_camera_rounded,
+              label: 'Snapshots',
+              size: storage.snapshotsSizeText,
+              count: storage.snapshotsCount,
+            ),
+          ],
+
+          // ── Info: oldest file age + retention + path ──
+          if (storage != null) ...[
+            const SizedBox(height: 12),
+            const _StorageDivider(),
+            const SizedBox(height: 8),
+            if (storage.oldestFileDays != null)
+              _StorageInfoRow(
+                icon: Icons.access_time_rounded,
+                text:
+                    'Oldest file: ${storage.oldestFileDays!.toStringAsFixed(1)} days old',
+              ),
+            _StorageInfoRow(
+              icon: Icons.autorenew_rounded,
+              text: 'Auto-cleanup every ${storage.retentionText}',
+            ),
+            const _StorageInfoRow(
+              icon: Icons.sync_rounded,
+              text: 'Live updates via WebSocket',
+            ),
+            if (storage.path.isNotEmpty)
+              _StorageInfoRow(
+                icon: Icons.folder_outlined,
+                text: storage.path,
+                overflow: true,
+              ),
+          ],
+          const SizedBox(height: 12),
+
+          // ── Cleanup button ───────────────────────
+          SizedBox(
+            width: double.infinity,
+            child: _buildCleanupButton(context, isDemo, storage),
+          ),
+        ],
+      ),
     );
   }
 
@@ -786,6 +793,31 @@ class _StorageStatusBadge extends StatelessWidget {
   }
 }
 
+class _StorageLiveBadge extends StatelessWidget {
+  const _StorageLiveBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.blueAccent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.45)),
+      ),
+      child: const Text(
+        'LIVE',
+        style: TextStyle(
+          color: Colors.lightBlueAccent,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
+}
+
 class _StorageStatBox extends StatelessWidget {
   final String label;
   final String value;
@@ -811,9 +843,7 @@ class _StorageStatBox extends StatelessWidget {
           children: [
             Text(value,
                 style: TextStyle(
-                    color: color,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600)),
+                    color: color, fontSize: 13, fontWeight: FontWeight.w600)),
             const SizedBox(height: 2),
             Text(label,
                 style: const TextStyle(color: Colors.grey, fontSize: 11)),
@@ -857,7 +887,9 @@ class _StorageBreakdownRow extends StatelessWidget {
         ),
         Text(size,
             style: const TextStyle(
-                color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)),
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w500)),
         const SizedBox(width: 8),
         Text('$count files',
             style: const TextStyle(color: Colors.grey, fontSize: 11)),
@@ -916,6 +948,7 @@ class _SettingsToggle extends ConsumerWidget {
     final settings = ref.watch(notificationSettingsProvider).valueOrNull;
     final isDemo = ref.watch(serverConfigProvider).isDemo;
     final value = settings?[settingKey] ?? true;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

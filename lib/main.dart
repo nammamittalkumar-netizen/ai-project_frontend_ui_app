@@ -120,6 +120,7 @@ class _MainShellState extends ConsumerState<MainShell> {
   int _index = 0;
   bool _isBottomTapAnimating = false;
   bool _alertsPrimed = false;
+  AlertSectionFocus _alertSectionFocus = AlertSectionFocus.aiDetections;
 
   @override
   void initState() {
@@ -169,6 +170,11 @@ class _MainShellState extends ConsumerState<MainShell> {
     _isBottomTapAnimating = false;
   }
 
+  Future<void> _openAlertsSection(AlertSectionFocus focus) async {
+    setState(() => _alertSectionFocus = focus);
+    await _openBottomTab(4);
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<AsyncValue<List<Alert>>>(alertsProvider, (previous, next) {
@@ -201,7 +207,11 @@ class _MainShellState extends ConsumerState<MainShell> {
             barrierDismissible: false,
             builder: (_) => AlertPopup(
               alert: latest,
-              onViewAlert: () => _openBottomTab(4),
+              onViewAlert: () => _openAlertsSection(
+                latest.isSystem
+                    ? AlertSectionFocus.systemAlerts
+                    : AlertSectionFocus.aiDetections,
+              ),
             ),
           );
         });
@@ -209,11 +219,19 @@ class _MainShellState extends ConsumerState<MainShell> {
     });
 
     final bottomScreens = [
-      DashboardScreen(onNavigate: _openMenuTab, currentIndex: _index),
+      DashboardScreen(
+        onNavigate: _openMenuTab,
+        onOpenAlerts: _openAlertsSection,
+        currentIndex: _index,
+      ),
       PlaybackScreen(onNavigate: _openMenuTab, currentIndex: _index),
       AiSearchScreen(onNavigate: _openMenuTab, currentIndex: _index),
       AnalyticsScreen(onNavigate: _openMenuTab, currentIndex: _index),
-      AlertsScreen(onNavigate: _openMenuTab, currentIndex: _index),
+      AlertsScreen(
+        onNavigate: _openMenuTab,
+        currentIndex: _index,
+        focus: _alertSectionFocus,
+      ),
     ];
 
     final Widget body = _index < _bottomTabCount
@@ -239,6 +257,7 @@ class _MainShellState extends ConsumerState<MainShell> {
               ),
             _ => DashboardScreen(
                 onNavigate: _openMenuTab,
+                onOpenAlerts: _openAlertsSection,
                 currentIndex: _index,
               ),
           };

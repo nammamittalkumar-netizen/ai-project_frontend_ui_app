@@ -69,8 +69,16 @@ class ApiService {
     }
 
     try {
+      final today = DateTime.now();
+      final dateFrom = DateTime(today.year, today.month, today.day);
+      final uri = Uri.parse('$baseUrl/api/events').replace(
+        queryParameters: {
+          'limit': '100',
+          'date_from': dateFrom.toIso8601String(),
+        },
+      );
       final response = await http
-          .get(Uri.parse('$baseUrl/api/events?limit=100'))
+          .get(uri)
           .timeout(const Duration(seconds: 5));
       if (response.statusCode != 200) {
         return [];
@@ -94,15 +102,19 @@ class ApiService {
     return '$streamUrl/stream/$cameraId';
   }
 
-  String websocketAlertsUrl() {
+  String _websocketUrl(String path) {
     final uri = Uri.parse(baseUrl);
     return Uri(
       scheme: uri.scheme == 'https' ? 'wss' : 'ws',
       host: uri.host,
       port: uri.hasPort ? uri.port : null,
-      path: '/ws/alerts',
+      path: path,
     ).toString();
   }
+
+  String websocketAlertsUrl() => _websocketUrl('/ws/alerts');
+
+  String websocketStorageUrl() => _websocketUrl('/ws/storage');
 
   Stream<Alert> watchAlerts() async* {
     if (baseUrl.isEmpty) {
@@ -127,6 +139,40 @@ class ApiService {
           }
         }
       } catch (_) {
+        await Future<void>.delayed(const Duration(seconds: 5));
+      } finally {
+        await socket?.close();
+      }
+    }
+  }
+
+  Stream<StorageStatus> watchStorageStatus() async* {
+    if (baseUrl.isEmpty) {
+      return;
+    }
+
+    while (true) {
+      WebSocket? socket;
+      try {
+        socket = await WebSocket.connect(websocketStorageUrl())
+            .timeout(const Duration(seconds: 5));
+        await for (final message in socket) {
+          if (message is! String) {
+            continue;
+          }
+          final body = jsonDecode(message);
+          if (body is Map<String, dynamic>) {
+            final data = body['type'] == 'storage' ? body['data'] : body;
+            if (data is Map<String, dynamic>) {
+              yield StorageStatus.fromJson(data);
+            }
+          }
+        }
+      } catch (_) {
+        final fallback = await getStorageStatus();
+        if (fallback != null) {
+          yield fallback;
+        }
         await Future<void>.delayed(const Duration(seconds: 5));
       } finally {
         await socket?.close();
@@ -349,6 +395,8 @@ class ApiService {
       'type': json['type'] ?? json['detection_type'],
       'clip_url': json['clip_url'] ??
           (id.isEmpty ? null : '$baseUrl/api/events/$id/video'),
+      'snapshot_url': json['snapshot_url'] ??
+          (id.isEmpty ? null : '$baseUrl/api/events/$id/snapshot'),
     });
   }
 }

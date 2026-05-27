@@ -289,6 +289,20 @@ final notificationSettingsProvider =
   return ref.watch(apiServiceProvider).getNotificationSettings();
 });
 
+final storageStatusProvider = StreamProvider<StorageStatus?>((ref) async* {
+  final config = ref.watch(serverConfigProvider);
+  if (!config.isConfigured || config.isDemo) {
+    yield null;
+    return;
+  }
+
+  final api = ref.watch(apiServiceProvider);
+  yield await api.getStorageStatus();
+  await for (final storage in api.watchStorageStatus()) {
+    yield storage;
+  }
+});
+
 final alertsProvider = StreamProvider<List<Alert>>((ref) async* {
   final config = ref.watch(serverConfigProvider);
   if (!config.isConfigured) {

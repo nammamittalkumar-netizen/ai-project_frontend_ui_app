@@ -4,14 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/camera.dart';
 import '../providers/providers.dart';
 import '../widgets/main_overflow_menu.dart';
+import 'alerts_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
   final ValueChanged<int> onNavigate;
+  final ValueChanged<AlertSectionFocus> onOpenAlerts;
   final int currentIndex;
 
   const DashboardScreen({
     super.key,
     required this.onNavigate,
+    required this.onOpenAlerts,
     required this.currentIndex,
   });
 
@@ -26,7 +29,9 @@ class DashboardScreen extends ConsumerWidget {
         ref.watch(serverConfigProvider.select((config) => config.isDemo));
     final accentColor = Theme.of(context).colorScheme.primary;
 
-    final alertCount = alertsAsync.valueOrNull?.length ?? 0;
+    final alerts = alertsAsync.valueOrNull ?? [];
+    final detectionCount = alerts.where((a) => a.isDetection).length;
+    final systemCount = alerts.where((a) => a.isSystem).length;
 
     return Scaffold(
       backgroundColor: const Color(0xFF111111),
@@ -37,19 +42,29 @@ class DashboardScreen extends ConsumerWidget {
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.only(right: 8),
             child: Center(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: accentColor,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '$alertCount alerts',
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _AlertCounterChip(
+                    icon: Icons.psychology_rounded,
+                    count: detectionCount,
+                    backgroundColor: accentColor,
+                    foregroundColor: Colors.white,
+                    tooltip: 'Open AI detections',
+                    onTap: () => onOpenAlerts(AlertSectionFocus.aiDetections),
+                  ),
+                  const SizedBox(width: 6),
+                  _AlertCounterChip(
+                    icon: Icons.settings_rounded,
+                    count: systemCount,
+                    backgroundColor: Colors.amber.withValues(alpha: 0.85),
+                    foregroundColor: Colors.black87,
+                    tooltip: 'Open system alerts',
+                    onTap: () => onOpenAlerts(AlertSectionFocus.systemAlerts),
+                  ),
+                ],
               ),
             ),
           ),
@@ -147,8 +162,6 @@ class DashboardScreen extends ConsumerWidget {
             final onlineCount =
                 cameras.where((camera) => camera.isOnline).length;
             final totalCount = cameras.length;
-            final eventsToday = status?.eventsToday ?? alertCount;
-            final aiDetections = status?.aiDetections ?? alertCount * 3;
             final uptime = status == null
                 ? '98.5%'
                 : '${status.uptimePercent.toStringAsFixed(1)}%';
@@ -169,16 +182,16 @@ class DashboardScreen extends ConsumerWidget {
                         color: Colors.lightBlueAccent,
                       ),
                       _StatTile(
-                        icon: Icons.warning_amber_rounded,
-                        value: '$eventsToday',
-                        label: 'Events Today',
-                        color: Colors.orangeAccent,
+                        icon: Icons.psychology_rounded,
+                        value: '$detectionCount',
+                        label: 'AI Detections Today',
+                        color: Colors.greenAccent,
                       ),
                       _StatTile(
-                        icon: Icons.psychology_rounded,
-                        value: '$aiDetections',
-                        label: 'AI Detections',
-                        color: Colors.greenAccent,
+                        icon: Icons.settings_rounded,
+                        value: '$systemCount',
+                        label: 'System Alerts Today',
+                        color: Colors.amber,
                       ),
                       _StatTile(
                         icon: Icons.dns_rounded,
@@ -258,6 +271,53 @@ class DashboardScreen extends ConsumerWidget {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _AlertCounterChip extends StatelessWidget {
+  final IconData icon;
+  final int count;
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  const _AlertCounterChip({
+    required this.icon,
+    required this.count,
+    required this.backgroundColor,
+    required this.foregroundColor,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: foregroundColor, size: 14),
+              const SizedBox(width: 4),
+              Text(
+                '$count',
+                style: TextStyle(color: foregroundColor, fontSize: 12),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -44,6 +44,7 @@ class _AlertPopupState extends State<AlertPopup> {
   }
 
   Future<void> _initializeVideo() async {
+    if (widget.alert.isSystem) return;
     final clipUrl = widget.alert.clipUrl;
     if (clipUrl == null || clipUrl.isEmpty) {
       return;
@@ -168,13 +169,20 @@ class _AlertPopupState extends State<AlertPopup> {
                 ),
               ],
             ),
-            if (widget.alert.clipUrl != null &&
-                widget.alert.clipUrl!.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              _VideoPreview(
-                controller: _controller,
-                failed: _videoFailed,
-              ),
+            if (widget.alert.isDetection) ...[
+              if (widget.alert.clipUrl != null &&
+                  widget.alert.clipUrl!.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _VideoPreview(
+                  controller: _controller,
+                  failed: _videoFailed,
+                  snapshotUrl: widget.alert.snapshotUrl,
+                ),
+              ] else if (widget.alert.snapshotUrl != null &&
+                  widget.alert.snapshotUrl!.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _SnapshotPreview(url: widget.alert.snapshotUrl!),
+              ],
             ],
             const SizedBox(height: 16),
             Row(
@@ -221,15 +229,20 @@ class _AlertPopupState extends State<AlertPopup> {
 class _VideoPreview extends StatelessWidget {
   final VideoPlayerController? controller;
   final bool failed;
+  final String? snapshotUrl;
 
   const _VideoPreview({
     required this.controller,
     required this.failed,
+    this.snapshotUrl,
   });
 
   @override
   Widget build(BuildContext context) {
     if (failed) {
+      if (snapshotUrl != null && snapshotUrl!.isNotEmpty) {
+        return _SnapshotPreview(url: snapshotUrl!);
+      }
       return const _VideoShell(
         child: Text(
           'Clip unavailable',
@@ -252,6 +265,39 @@ class _VideoPreview extends StatelessWidget {
       child: AspectRatio(
         aspectRatio: controller.value.aspectRatio,
         child: VideoPlayer(controller),
+      ),
+    );
+  }
+}
+
+class _SnapshotPreview extends StatelessWidget {
+  final String url;
+
+  const _SnapshotPreview({required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: Image.network(
+        url,
+        height: 160,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return _VideoShell(
+            child: CircularProgressIndicator(
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          );
+        },
+        errorBuilder: (_, __, ___) => const _VideoShell(
+          child: Text(
+            'Snapshot unavailable',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ),
       ),
     );
   }

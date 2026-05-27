@@ -7,14 +7,18 @@ import '../providers/providers.dart';
 import '../widgets/alert_popup.dart';
 import '../widgets/main_overflow_menu.dart';
 
+enum AlertSectionFocus { aiDetections, systemAlerts }
+
 class AlertsScreen extends ConsumerWidget {
   final ValueChanged<int> onNavigate;
   final int currentIndex;
+  final AlertSectionFocus focus;
 
   const AlertsScreen({
     super.key,
     required this.onNavigate,
     required this.currentIndex,
+    this.focus = AlertSectionFocus.aiDetections,
   });
 
   @override
@@ -28,7 +32,7 @@ class AlertsScreen extends ConsumerWidget {
       backgroundColor: const Color(0xFF111111),
       appBar: AppBar(
         title: const Text(
-          'Alerts',
+          "Today's Alerts",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
         actions: [
@@ -99,7 +103,7 @@ class AlertsScreen extends ConsumerWidget {
                   SizedBox(height: MediaQuery.sizeOf(context).height * 0.35),
                   const Center(
                     child: Text(
-                      'No alerts',
+                      'No alerts today',
                       style: TextStyle(color: Colors.grey),
                     ),
                   ),
@@ -107,14 +111,146 @@ class AlertsScreen extends ConsumerWidget {
               );
             }
 
-            return ListView.builder(
+            final detectionAlerts = alerts.where((a) => a.isDetection).toList();
+            final systemAlerts = alerts.where((a) => a.isSystem).toList();
+            final detectionSection = _AlertSection(
+              icon: Icons.psychology_rounded,
+              title: 'AI Detections',
+              count: detectionAlerts.length,
+              color: accentColor,
+              emptyMessage: 'No detections today',
+              alerts: detectionAlerts,
+            );
+            const sectionGap = SizedBox(height: 20);
+            final systemSection = _AlertSection(
+              icon: Icons.settings_rounded,
+              title: 'System Alerts',
+              count: systemAlerts.length,
+              color: Colors.amber,
+              emptyMessage: 'No system alerts today',
+              alerts: systemAlerts,
+            );
+
+            return ListView(
               padding: const EdgeInsets.all(12),
-              itemCount: alerts.length,
-              itemBuilder: (context, index) {
-                return _AlertTile(alert: alerts[index]);
-              },
+              children: focus == AlertSectionFocus.systemAlerts
+                  ? [systemSection, sectionGap, detectionSection]
+                  : [detectionSection, sectionGap, systemSection],
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _AlertSection extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final int count;
+  final Color color;
+  final String emptyMessage;
+  final List<Alert> alerts;
+
+  const _AlertSection({
+    required this.icon,
+    required this.title,
+    required this.count,
+    required this.color,
+    required this.emptyMessage,
+    required this.alerts,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          icon: icon,
+          title: title,
+          count: count,
+          color: color,
+        ),
+        if (alerts.isEmpty)
+          _EmptySection(message: emptyMessage)
+        else
+          ...alerts.map((alert) => _AlertTile(alert: alert)),
+      ],
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final int count;
+  final Color color;
+
+  const _SectionHeader({
+    required this.icon,
+    required this.title,
+    required this.count,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              '$count',
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptySection extends StatelessWidget {
+  final String message;
+
+  const _EmptySection({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF2A2A2A)),
+      ),
+      child: Center(
+        child: Text(
+          message,
+          style: const TextStyle(color: Colors.grey, fontSize: 13),
         ),
       ),
     );
@@ -197,8 +333,10 @@ class _AlertTile extends StatelessWidget {
                 ],
               ),
               const SizedBox(width: 8),
-              const Icon(
-                Icons.play_circle_outline_rounded,
+              Icon(
+                alert.isDetection
+                    ? Icons.play_circle_outline_rounded
+                    : Icons.info_outline_rounded,
                 color: Colors.grey,
                 size: 22,
               ),

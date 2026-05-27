@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../models/alert.dart';
 import '../providers/providers.dart';
+import '../widgets/alert_popup.dart';
 import '../widgets/main_overflow_menu.dart';
 
 class AiSearchScreen extends ConsumerStatefulWidget {
@@ -137,49 +138,63 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
               const _EmptyResult()
             else
               ...(_results.isEmpty ? fallbackAlerts : _results).map(
-                    (alert) => Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1A1A1A),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFF2A2A2A)),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(alert.typeIcon, color: alert.typeColor),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  alert.typeLabel,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
+                    (alert) => GestureDetector(
+                      onTap: () {
+                        showDialog<void>(
+                          context: context,
+                          builder: (_) => AlertPopup(alert: alert),
+                        );
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A1A1A),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFF2A2A2A)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(alert.typeIcon, color: alert.typeColor),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    alert.typeLabel,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  '${alert.cameraName} · ${DateFormat('MMM d, hh:mm a').format(alert.timestamp)}',
-                                  style: const TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 12,
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    '${alert.cameraName} · ${DateFormat('MMM d, hh:mm a').format(alert.timestamp)}',
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (alert.confidence > 0)
-                            Text(
-                              '${(alert.confidence * 100).toStringAsFixed(0)}%',
-                              style: TextStyle(
-                                color: accentColor,
-                                fontWeight: FontWeight.w700,
+                                ],
                               ),
                             ),
-                        ],
+                            if (alert.confidence > 0)
+                              Text(
+                                '${(alert.confidence * 100).toStringAsFixed(0)}%',
+                                style: TextStyle(
+                                  color: accentColor,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.play_circle_outline_rounded,
+                              color: Colors.grey,
+                              size: 22,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

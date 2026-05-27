@@ -19,6 +19,7 @@ class Alert {
   final String cameraName;
   final DateTime timestamp;
   final String? clipUrl;
+  final String? snapshotUrl;
   final double confidence;
 
   const Alert({
@@ -28,6 +29,7 @@ class Alert {
     required this.cameraName,
     required this.timestamp,
     this.clipUrl,
+    this.snapshotUrl,
     this.confidence = 0,
   });
 
@@ -42,6 +44,7 @@ class Alert {
       timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ??
           DateTime.now(),
       clipUrl: json['clip_url']?.toString() ?? json['video_url']?.toString(),
+      snapshotUrl: json['snapshot_url']?.toString(),
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
     );
   }
@@ -142,6 +145,15 @@ class Alert {
         return Colors.redAccent;
     }
   }
+
+  bool get isDetection =>
+      type == AlertType.fire ||
+      type == AlertType.smoke ||
+      type == AlertType.liquidSpill ||
+      type == AlertType.suspicious ||
+      type == AlertType.fall;
+
+  bool get isSystem => !isDetection;
 
   IconData get typeIcon {
     switch (type) {
