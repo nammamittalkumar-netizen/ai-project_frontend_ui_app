@@ -138,66 +138,66 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
               const _EmptyResult()
             else
               ...(_results.isEmpty ? fallbackAlerts : _results).map(
-                    (alert) => GestureDetector(
-                      onTap: () {
-                        showDialog<void>(
-                          context: context,
-                          builder: (_) => AlertPopup(alert: alert),
-                        );
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1A1A1A),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFF2A2A2A)),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(alert.typeIcon, color: alert.typeColor),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    alert.typeLabel,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    '${alert.cameraName} · ${DateFormat('MMM d, hh:mm a').format(alert.timestamp)}',
-                                    style: const TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (alert.confidence > 0)
+                (alert) => GestureDetector(
+                  onTap: () {
+                    showDialog<void>(
+                      context: context,
+                      builder: (_) => AlertPopup(alert: alert),
+                    );
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFF2A2A2A)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(alert.typeIcon, color: alert.typeColor),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               Text(
-                                '${(alert.confidence * 100).toStringAsFixed(0)}%',
-                                style: TextStyle(
-                                  color: accentColor,
-                                  fontWeight: FontWeight.w700,
+                                alert.typeLabel,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                            const SizedBox(width: 8),
-                            const Icon(
-                              Icons.play_circle_outline_rounded,
-                              color: Colors.grey,
-                              size: 22,
-                            ),
-                          ],
+                              const SizedBox(height: 3),
+                              Text(
+                                '${alert.displaySource} · ${DateFormat('MMM d, hh:mm a').format(alert.timestamp)}',
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                        if (alert.confidence > 0)
+                          Text(
+                            '${(alert.confidence * 100).toStringAsFixed(0)}%',
+                            style: TextStyle(
+                              color: accentColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.play_circle_outline_rounded,
+                          color: Colors.grey,
+                          size: 22,
+                        ),
+                      ],
                     ),
                   ),
+                ),
+              ),
             const SizedBox(height: 12),
           ],
           const _SectionTitle('Popular Searches'),

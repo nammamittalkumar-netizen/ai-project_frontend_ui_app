@@ -10,8 +10,8 @@ class MainOverflowMenu extends StatelessWidget {
     required this.currentIndex,
   });
 
-  static const reportsIndex = 5;
-  static const settingsIndex = 6;
+  static const reportsIndex = 4;
+  static const settingsIndex = 5;
 
   @override
   Widget build(BuildContext context) {

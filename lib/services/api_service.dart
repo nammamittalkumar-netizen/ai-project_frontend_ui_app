@@ -2,8 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
-
 import '../models/alert.dart';
 import '../models/camera.dart';
 
@@ -77,9 +75,7 @@ class ApiService {
           'date_from': dateFrom.toIso8601String(),
         },
       );
-      final response = await http
-          .get(uri)
-          .timeout(const Duration(seconds: 5));
+      final response = await http.get(uri).timeout(const Duration(seconds: 5));
       if (response.statusCode != 200) {
         return [];
       }
@@ -241,40 +237,6 @@ class ApiService {
       return results
           .whereType<Map<String, dynamic>>()
           .map(_alertFromServerJson)
-          .toList();
-    } catch (_) {
-      return [];
-    }
-  }
-
-  Future<List<RecordingItem>> getPlayback({
-    required String cameraId,
-    required DateTime date,
-    required int rangeHours,
-  }) async {
-    if (baseUrl.isEmpty || cameraId.isEmpty) {
-      return [];
-    }
-
-    try {
-      final uri = Uri.parse('$baseUrl/api/playback').replace(
-        queryParameters: {
-          'camera_id': cameraId,
-          'date': DateFormat('yyyy-MM-dd').format(date),
-          'range_hours': '$rangeHours',
-        },
-      );
-      final response = await http.get(uri).timeout(const Duration(seconds: 8));
-      if (response.statusCode != 200) {
-        return [];
-      }
-      final body = jsonDecode(response.body);
-      if (body is! List) {
-        return [];
-      }
-      return body
-          .whereType<Map<String, dynamic>>()
-          .map((json) => RecordingItem.fromJson(json, baseUrl))
           .toList();
     } catch (_) {
       return [];
@@ -472,37 +434,6 @@ class TrendPoint {
     return TrendPoint(
       day: json['day']?.toString() ?? '',
       count: _asInt(json['count']),
-    );
-  }
-}
-
-class RecordingItem {
-  final int id;
-  final String cameraId;
-  final String cameraName;
-  final DateTime startTime;
-  final double durationSeconds;
-  final String videoUrl;
-
-  const RecordingItem({
-    required this.id,
-    required this.cameraId,
-    required this.cameraName,
-    required this.startTime,
-    required this.durationSeconds,
-    required this.videoUrl,
-  });
-
-  factory RecordingItem.fromJson(Map<String, dynamic> json, String baseUrl) {
-    final id = _asInt(json['id']);
-    return RecordingItem(
-      id: id,
-      cameraId: json['camera_id']?.toString() ?? '',
-      cameraName: json['camera_name']?.toString() ?? '',
-      startTime: DateTime.tryParse(json['start_time']?.toString() ?? '') ??
-          DateTime.now(),
-      durationSeconds: _asDouble(json['duration_seconds']),
-      videoUrl: '$baseUrl/api/playback/video/$id',
     );
   }
 }

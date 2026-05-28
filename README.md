@@ -9,7 +9,6 @@ Connects to the Mini PC server over local WiFi.
 
 - Live camera streams from all RTSP cameras
 - Real-time AI detection alerts (fire, smoke, spill, fall, suspicious)
-- Playback of recorded video by camera and date
 - Alert history with 10s incident clips and snapshots
 - AI text search across all detection events
 - Analytics and weekly detection trends
@@ -24,7 +23,6 @@ Connects to the Mini PC server over local WiFi.
 |--------|--------------|
 | Dashboard | Live camera grid + server status + today's stats |
 | Alerts | Real-time detection alerts with clips and snapshots |
-| Playback | Recorded video by camera, date, and time range |
 | AI Search | Natural language search across all events |
 | Analytics | Detection trends, top categories, camera activity |
 | Reports | Camera activity, alert summary, system performance |
@@ -37,7 +35,6 @@ Connects to the Mini PC server over local WiFi.
 ```
 Mini PC (Server)                    Phone (App)
 ─────────────────                   ─────────────────────
-data/recordings/     ─── WiFi ───►  Playback Screen
 data/clips/          ─── WiFi ───►  Alert clips
 data/snapshots/      ─── WiFi ───►  Alert photos
 ```
@@ -127,7 +124,7 @@ for the background threads.
 
 - Flutter + Dart
 - Riverpod (state management)
-- video_player (video playback)
+- video_player (incident clip playback)
 - WebSocket (real-time alerts)
 - HTTP (REST API calls)
 

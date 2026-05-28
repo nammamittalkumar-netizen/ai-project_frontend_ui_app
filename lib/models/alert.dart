@@ -155,6 +155,27 @@ class Alert {
 
   bool get isSystem => !isDetection;
 
+  String get displaySource {
+    if (isDetection) {
+      return cameraName.trim().isEmpty ? 'Unknown Camera' : cameraName;
+    }
+
+    switch (type) {
+      case AlertType.storageWarning:
+      case AlertType.storageCritical:
+        return 'Storage Monitor';
+      case AlertType.cameraOffline:
+      case AlertType.cameraOnline:
+        return 'Camera Health';
+      case AlertType.fire:
+      case AlertType.smoke:
+      case AlertType.liquidSpill:
+      case AlertType.suspicious:
+      case AlertType.fall:
+        return 'System';
+    }
+  }
+
   IconData get typeIcon {
     switch (type) {
       case AlertType.fire:

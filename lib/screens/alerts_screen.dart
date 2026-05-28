@@ -309,7 +309,7 @@ class _AlertTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      alert.cameraName,
+                      alert.displaySource,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(color: Colors.grey, fontSize: 12),

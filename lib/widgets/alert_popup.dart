@@ -11,8 +11,14 @@ class AlertPopup extends StatefulWidget {
   // Called when user taps "View Alert" — navigates to the Alerts tab.
   // Optional: if null (e.g. already on Alerts screen) just dismisses.
   final VoidCallback? onViewAlert;
+  final bool autoDismiss;
 
-  const AlertPopup({super.key, required this.alert, this.onViewAlert});
+  const AlertPopup({
+    super.key,
+    required this.alert,
+    this.onViewAlert,
+    this.autoDismiss = false,
+  });
 
   @override
   State<AlertPopup> createState() => _AlertPopupState();
@@ -25,12 +31,23 @@ class _AlertPopupState extends State<AlertPopup> {
   Timer? _timer;
   int _secondsLeft = _durationSeconds;
   bool _videoFailed = false;
+  bool _isHeld = false;
+
+  bool get _hasMedia =>
+      widget.alert.isDetection &&
+      ((widget.alert.clipUrl != null && widget.alert.clipUrl!.isNotEmpty) ||
+          (widget.alert.snapshotUrl != null &&
+              widget.alert.snapshotUrl!.isNotEmpty));
+
+  bool get _isAutoClosing => widget.autoDismiss && !_isHeld;
 
   @override
   void initState() {
     super.initState();
-    _playAlertSignal();
-    _startCountdown();
+    if (widget.autoDismiss) {
+      _playAlertSignal();
+      _startCountdown();
+    }
     _initializeVideo();
   }
 
@@ -54,7 +71,7 @@ class _AlertPopupState extends State<AlertPopup> {
       final controller = VideoPlayerController.networkUrl(Uri.parse(clipUrl));
       _controller = controller;
       await controller.initialize();
-      await controller.setLooping(false);
+      await controller.setLooping(!widget.autoDismiss || _isHeld);
       await controller.play();
       if (mounted) {
         setState(() {});
@@ -73,6 +90,11 @@ class _AlertPopupState extends State<AlertPopup> {
         return;
       }
 
+      if (_isHeld) {
+        timer.cancel();
+        return;
+      }
+
       if (_secondsLeft <= 1) {
         timer.cancel();
         Navigator.of(context).maybePop();
@@ -81,6 +103,32 @@ class _AlertPopupState extends State<AlertPopup> {
 
       setState(() => _secondsLeft--);
     });
+  }
+
+  Future<void> _holdAlert() async {
+    if (!widget.autoDismiss || _isHeld) {
+      return;
+    }
+
+    _timer?.cancel();
+    if (_controller?.value.isInitialized ?? false) {
+      await _controller?.setLooping(true);
+    }
+    if (mounted) {
+      setState(() => _isHeld = true);
+    }
+  }
+
+  Future<void> _openFullScreen() async {
+    await _holdAlert();
+    if (!mounted) return;
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => _FullScreenIncidentViewer(alert: widget.alert),
+      ),
+    );
   }
 
   @override
@@ -95,133 +143,468 @@ class _AlertPopupState extends State<AlertPopup> {
     return Dialog(
       backgroundColor: const Color(0xFF1A1A1A),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.82,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: widget.alert.typeColor.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      widget.alert.typeIcon,
+                      color: widget.alert.typeColor,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.alert.typeLabelWithEmoji,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: widget.alert.typeColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          widget.alert.displaySource,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_isAutoClosing) ...[
+                    const SizedBox(width: 10),
+                    _CountdownHoldControl(
+                      secondsLeft: _secondsLeft,
+                      durationSeconds: _durationSeconds,
+                      color: widget.alert.typeColor,
+                      onHold: _holdAlert,
+                    ),
+                  ],
+                ],
+              ),
+              if (!_isAutoClosing && widget.alert.isDetection) ...[
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Review mode',
+                    style: TextStyle(
+                      color: widget.alert.typeColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+              if (widget.alert.isDetection) ...[
+                if (widget.alert.clipUrl != null &&
+                    widget.alert.clipUrl!.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _VideoPreview(
+                    controller: _controller,
+                    failed: _videoFailed,
+                    snapshotUrl: widget.alert.snapshotUrl,
+                  ),
+                ] else if (widget.alert.snapshotUrl != null &&
+                    widget.alert.snapshotUrl!.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _SnapshotPreview(url: widget.alert.snapshotUrl!),
+                ],
+              ],
+              const SizedBox(height: 16),
+              if (_isAutoClosing)
+                Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.of(context).maybePop(),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.grey,
+                              side: const BorderSide(color: Color(0xFF3A3A3A)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text('Dismiss'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).maybePop();
+                              widget.onViewAlert?.call();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.primary,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text('View Alert'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_hasMedia) ...[
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _openFullScreen,
+                          icon: const Icon(Icons.fullscreen_rounded),
+                          label: const Text(
+                            'Full Screen',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: widget.alert.typeColor,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.grey,
+                          side: const BorderSide(color: Color(0xFF3A3A3A)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text('Close'),
+                      ),
+                    ),
+                    if (_hasMedia) ...[
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _openFullScreen,
+                          icon: const Icon(Icons.fullscreen_rounded),
+                          label: const Text(
+                            'Full Screen',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: widget.alert.typeColor,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CountdownHoldControl extends StatelessWidget {
+  final int secondsLeft;
+  final int durationSeconds;
+  final Color color;
+  final VoidCallback onHold;
+
+  const _CountdownHoldControl({
+    required this.secondsLeft,
+    required this.durationSeconds,
+    required this.color,
+    required this.onHold,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Hold alert',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(21),
+        onTap: onHold,
+        child: SizedBox(
+          width: 42,
+          height: 42,
+          child: Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              CircularProgressIndicator(
+                value: secondsLeft / durationSeconds,
+                color: color,
+                backgroundColor: Colors.white.withValues(alpha: 0.12),
+                strokeWidth: 3,
+              ),
+              Text(
+                '$secondsLeft',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+              Positioned(
+                right: -1,
+                bottom: -1,
+                child: Container(
+                  width: 17,
+                  height: 17,
                   decoration: BoxDecoration(
-                    color: widget.alert.typeColor.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(10),
+                    color: const Color(0xFF1A1A1A),
+                    border: Border.all(color: color, width: 1.4),
+                    borderRadius: BorderRadius.circular(9),
                   ),
                   child: Icon(
-                    widget.alert.typeIcon,
-                    color: widget.alert.typeColor,
-                    size: 28,
+                    Icons.timer_off_rounded,
+                    color: color,
+                    size: 11,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.alert.typeLabelWithEmoji,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: widget.alert.typeColor,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        widget.alert.cameraName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                SizedBox(
-                  width: 42,
-                  height: 42,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        value: _secondsLeft / _durationSeconds,
-                        color: widget.alert.typeColor,
-                        backgroundColor: Colors.white.withValues(alpha: 0.12),
-                        strokeWidth: 3,
-                      ),
-                      Text(
-                        '$_secondsLeft',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            if (widget.alert.isDetection) ...[
-              if (widget.alert.clipUrl != null &&
-                  widget.alert.clipUrl!.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _VideoPreview(
-                  controller: _controller,
-                  failed: _videoFailed,
-                  snapshotUrl: widget.alert.snapshotUrl,
-                ),
-              ] else if (widget.alert.snapshotUrl != null &&
-                  widget.alert.snapshotUrl!.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _SnapshotPreview(url: widget.alert.snapshotUrl!),
-              ],
+              ),
             ],
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.grey,
-                      side: const BorderSide(color: Color(0xFF3A3A3A)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FullScreenIncidentViewer extends StatefulWidget {
+  final Alert alert;
+
+  const _FullScreenIncidentViewer({required this.alert});
+
+  @override
+  State<_FullScreenIncidentViewer> createState() =>
+      _FullScreenIncidentViewerState();
+}
+
+class _FullScreenIncidentViewerState extends State<_FullScreenIncidentViewer> {
+  VideoPlayerController? _controller;
+  bool _videoFailed = false;
+  bool get _hasClip =>
+      widget.alert.clipUrl != null && widget.alert.clipUrl!.isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    if (_hasClip) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    }
+    _initializeVideo();
+  }
+
+  Future<void> _initializeVideo() async {
+    final clipUrl = widget.alert.clipUrl;
+    if (clipUrl == null || clipUrl.isEmpty) {
+      return;
+    }
+
+    try {
+      final controller = VideoPlayerController.networkUrl(Uri.parse(clipUrl));
+      _controller = controller;
+      await controller.initialize();
+      await controller.setLooping(true);
+      await controller.play();
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _videoFailed = true);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final snapshotUrl = widget.alert.snapshotUrl;
+    final hasSnapshot = snapshotUrl != null && snapshotUrl.isNotEmpty;
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Center(
+                child: _buildMedia(hasSnapshot, snapshotUrl),
+              ),
+            ),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(8, 8, 12, 10),
+                color: Colors.black.withValues(alpha: 0.72),
+                child: Row(
+                  children: [
+                    IconButton(
+                      tooltip: 'Close',
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      icon: const Icon(Icons.close_rounded),
+                      color: Colors.white,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            widget.alert.typeLabelWithEmoji,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.alert.displaySource,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    child: const Text('Dismiss'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).maybePop();
-                      widget.onViewAlert?.call();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                    if (_controller?.value.isInitialized ?? false)
+                      ValueListenableBuilder<VideoPlayerValue>(
+                        valueListenable: _controller!,
+                        builder: (context, value, _) {
+                          return IconButton(
+                            tooltip: value.isPlaying ? 'Pause' : 'Play',
+                            onPressed: () {
+                              value.isPlaying
+                                  ? _controller?.pause()
+                                  : _controller?.play();
+                            },
+                            icon: Icon(
+                              value.isPlaying
+                                  ? Icons.pause_rounded
+                                  : Icons.play_arrow_rounded,
+                            ),
+                            color: Colors.white,
+                          );
+                        },
                       ),
-                    ),
-                    child: const Text('View Alert'),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMedia(bool hasSnapshot, String? snapshotUrl) {
+    final controller = _controller;
+    final clipUrl = widget.alert.clipUrl;
+    final hasClip = clipUrl != null && clipUrl.isNotEmpty;
+
+    if (!_videoFailed && controller != null && controller.value.isInitialized) {
+      return AspectRatio(
+        aspectRatio: controller.value.aspectRatio,
+        child: VideoPlayer(controller),
+      );
+    }
+
+    if (!_videoFailed && hasClip) {
+      return CircularProgressIndicator(color: widget.alert.typeColor);
+    }
+
+    if (hasSnapshot) {
+      return InteractiveViewer(
+        minScale: 1,
+        maxScale: 4,
+        child: Image.network(
+          snapshotUrl!,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => const _FullScreenMessage(
+            text: 'Snapshot unavailable',
+          ),
+        ),
+      );
+    }
+
+    return const _FullScreenMessage(text: 'Incident media unavailable');
+  }
+}
+
+class _FullScreenMessage extends StatelessWidget {
+  final String text;
+
+  const _FullScreenMessage({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      textAlign: TextAlign.center,
+      style: const TextStyle(color: Colors.grey, fontSize: 14),
     );
   }
 }

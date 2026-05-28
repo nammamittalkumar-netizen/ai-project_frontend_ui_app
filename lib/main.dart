@@ -8,7 +8,6 @@ import 'screens/alerts_screen.dart';
 import 'screens/ai_search_screen.dart';
 import 'screens/analytics_screen.dart';
 import 'screens/dashboard_screen.dart';
-import 'screens/playback_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/setup_screen.dart';
@@ -114,7 +113,7 @@ class MainShell extends ConsumerStatefulWidget {
 }
 
 class _MainShellState extends ConsumerState<MainShell> {
-  static const _bottomTabCount = 5;
+  static const _bottomTabCount = 4;
 
   late PageController _pageController;
   int _index = 0;
@@ -172,7 +171,7 @@ class _MainShellState extends ConsumerState<MainShell> {
 
   Future<void> _openAlertsSection(AlertSectionFocus focus) async {
     setState(() => _alertSectionFocus = focus);
-    await _openBottomTab(4);
+    await _openBottomTab(3);
   }
 
   @override
@@ -207,6 +206,7 @@ class _MainShellState extends ConsumerState<MainShell> {
             barrierDismissible: false,
             builder: (_) => AlertPopup(
               alert: latest,
+              autoDismiss: true,
               onViewAlert: () => _openAlertsSection(
                 latest.isSystem
                     ? AlertSectionFocus.systemAlerts
@@ -224,7 +224,6 @@ class _MainShellState extends ConsumerState<MainShell> {
         onOpenAlerts: _openAlertsSection,
         currentIndex: _index,
       ),
-      PlaybackScreen(onNavigate: _openMenuTab, currentIndex: _index),
       AiSearchScreen(onNavigate: _openMenuTab, currentIndex: _index),
       AnalyticsScreen(onNavigate: _openMenuTab, currentIndex: _index),
       AlertsScreen(
@@ -247,11 +246,11 @@ class _MainShellState extends ConsumerState<MainShell> {
             children: bottomScreens,
           )
         : switch (_index) {
-            5 => ReportsScreen(
+            4 => ReportsScreen(
                 onNavigate: _openMenuTab,
                 currentIndex: _index,
               ),
-            6 => SettingsScreen(
+            5 => SettingsScreen(
                 onNavigate: _openMenuTab,
                 currentIndex: _index,
               ),
@@ -357,28 +356,22 @@ class _MainBottomNav extends StatelessWidget {
               onTap: () => onTap(0),
             ),
             _MainBottomNavItem(
-              icon: Icons.history_rounded,
-              label: 'Playback',
+              icon: Icons.search_rounded,
+              label: 'AI Search',
               selected: currentIndex == 1,
               onTap: () => onTap(1),
             ),
             _MainBottomNavItem(
-              icon: Icons.search_rounded,
-              label: 'AI Search',
+              icon: Icons.bar_chart_rounded,
+              label: 'Analytics',
               selected: currentIndex == 2,
               onTap: () => onTap(2),
             ),
             _MainBottomNavItem(
-              icon: Icons.bar_chart_rounded,
-              label: 'Analytics',
-              selected: currentIndex == 3,
-              onTap: () => onTap(3),
-            ),
-            _MainBottomNavItem(
               icon: Icons.notifications_rounded,
               label: 'Alerts',
-              selected: currentIndex == 4,
-              onTap: () => onTap(4),
+              selected: currentIndex == 3,
+              onTap: () => onTap(3),
             ),
           ],
         ),
