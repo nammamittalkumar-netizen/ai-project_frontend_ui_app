@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../main.dart';
 import '../providers/providers.dart';
 import '../services/api_service.dart';
+import '../theme/app_colors.dart';
 
 class SetupScreen extends ConsumerStatefulWidget {
   const SetupScreen({super.key});
@@ -21,7 +22,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       TextEditingController(text: '$defaultStreamPort');
 
   bool _isConnecting = false;
-  bool _autoConnecting = false; // true while the initial auto-reconnect runs
+  bool _autoConnecting = false;
   String? _error;
 
   @override
@@ -30,13 +31,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     _tryAutoReconnect();
   }
 
-  /// On screen open, read the last-known server from storage.
-  /// If found → pre-fill the form and silently attempt to reconnect.
-  /// If storage is empty (fresh install or app-data cleared) → do nothing,
-  /// user must type manually.
   Future<void> _tryAutoReconnect() async {
     final saved = await loadLastKnownServer();
-    if (saved == null) return; // No stored IP → nothing to auto-fill
+    if (saved == null) return;
     if (!mounted) return;
 
     setState(() {
@@ -46,12 +43,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       _autoConnecting = true;
     });
 
-    // Kick off the connect flow automatically — same logic as pressing the button
     await _connect();
 
-    if (mounted) {
-      setState(() => _autoConnecting = false);
-    }
+    if (mounted) setState(() => _autoConnecting = false);
   }
 
   @override
@@ -63,7 +57,6 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 
   Future<void> _connect() async {
-    // Guard: form may not yet be built on first auto-connect attempt
     if (_formKey.currentState == null || !_formKey.currentState!.validate()) {
       return;
     }
@@ -87,9 +80,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       streamUrl: config.streamUrl,
     ).checkHealth();
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     if (!canConnect) {
       setState(() {
@@ -105,9 +96,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           streamPort: streamPort,
         );
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const MainShell()),
@@ -117,10 +106,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
 
   Future<void> _useDemoMode() async {
     await ref.read(serverConfigProvider.notifier).useDemoMode();
-
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const MainShell()),
@@ -131,9 +117,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   @override
   Widget build(BuildContext context) {
     final accentColor = Theme.of(context).colorScheme.primary;
+    final colors = AppColors.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF111111),
+      backgroundColor: colors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -151,11 +138,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       size: 48,
                     ),
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       'Security Hub',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Colors.white,
+                        color: colors.onSurface,
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
                       ),
@@ -166,21 +153,22 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                           ? 'Reconnecting to your server…'
                           : 'Connect directly to your Mini PC server.',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.grey, fontSize: 14),
+                      style: TextStyle(
+                          color: colors.onSurfaceDim, fontSize: 14),
                     ),
                     const SizedBox(height: 28),
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1A1A1A),
+                        color: colors.surface,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF2A2A2A)),
+                        border: Border.all(color: colors.border),
                       ),
                       child: Column(
                         children: [
                           TextFormField(
                             controller: _ipController,
-                            style: const TextStyle(color: Colors.white),
+                            style: TextStyle(color: colors.onSurface),
                             keyboardType: TextInputType.url,
                             decoration: const InputDecoration(
                               labelText: 'Mini PC IP address',
@@ -220,13 +208,13 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                                 Icon(
                                   Icons.wifi_find_rounded,
                                   size: 13,
-                                  color: Colors.grey[600],
+                                  color: colors.onSurfaceDim,
                                 ),
                                 const SizedBox(width: 5),
                                 Text(
                                   'Using your saved server IP',
                                   style: TextStyle(
-                                    color: Colors.grey[600],
+                                    color: colors.onSurfaceDim,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -263,8 +251,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                                 foregroundColor: Colors.white,
                                 disabledBackgroundColor:
                                     accentColor.withValues(alpha: 0.45),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 14),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
@@ -276,16 +264,14 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                             width: double.infinity,
                             child: OutlinedButton.icon(
                               onPressed: _isConnecting ? null : _useDemoMode,
-                              icon:
-                                  const Icon(Icons.play_circle_outline_rounded),
+                              icon: const Icon(
+                                  Icons.play_circle_outline_rounded),
                               label: const Text('Use Demo Mode'),
                               style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                side: const BorderSide(
-                                  color: Color(0xFF2A2A2A),
-                                ),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
+                                foregroundColor: colors.onSurface,
+                                side: BorderSide(color: colors.border),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 14),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
@@ -296,7 +282,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const _HelperCard(),
+                    _HelperCard(),
                   ],
                 ),
               ),
@@ -319,9 +305,10 @@ class _PortField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return TextFormField(
       controller: controller,
-      style: const TextStyle(color: Colors.white),
+      style: TextStyle(color: colors.onSurface),
       keyboardType: TextInputType.number,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       decoration: InputDecoration(labelText: label),
@@ -337,31 +324,30 @@ class _PortField extends StatelessWidget {
 }
 
 class _HelperCard extends StatelessWidget {
-  const _HelperCard();
-
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
+        border: Border.all(color: colors.border),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Finding your Mini PC',
             style: TextStyle(
-              color: Colors.white,
+              color: colors.onSurface,
               fontWeight: FontWeight.w600,
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             'Use the LAN IP shown in your router or Mini PC network settings when your phone is on the same Wi-Fi. If you use Tailscale, enter the Mini PC Tailscale IP from the Tailscale app or admin console.',
-            style: TextStyle(color: Colors.grey, height: 1.35),
+            style: TextStyle(color: colors.onSurfaceDim, height: 1.35),
           ),
         ],
       ),

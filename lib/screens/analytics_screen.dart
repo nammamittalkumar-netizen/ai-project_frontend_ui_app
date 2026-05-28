@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/alert.dart';
 import '../providers/providers.dart';
 import '../services/api_service.dart';
+import '../theme/app_colors.dart';
 import '../widgets/main_overflow_menu.dart';
 
 class AnalyticsScreen extends ConsumerWidget {
@@ -18,18 +19,20 @@ class AnalyticsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cameras = ref.watch(camerasProvider).valueOrNull ?? [];
     final alerts = ref.watch(alertsProvider).valueOrNull ?? [];
     final analytics = ref.watch(analyticsProvider).valueOrNull;
-    final online = cameras.where((camera) => camera.isOnline).length;
     final accentColor = Theme.of(context).colorScheme.primary;
+    final colors = AppColors.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF111111),
+      backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Analytics',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: colors.onSurface,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         actions: [
           MainOverflowMenu(
@@ -41,43 +44,6 @@ class AnalyticsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 1.35,
-            children: [
-              _MetricCard(
-                icon: Icons.people_alt_rounded,
-                color: Colors.lightBlueAccent,
-                value:
-                    '${analytics?.aiDetectionsTotal ?? alerts.length * 8 + online * 12}',
-                label: 'AI Detections',
-              ),
-              _MetricCard(
-                icon: Icons.directions_car_rounded,
-                color: Colors.greenAccent,
-                value: '$online/${cameras.length}',
-                label: 'Online Cameras',
-              ),
-              _MetricCard(
-                icon: Icons.notifications_active_rounded,
-                color: Colors.orangeAccent,
-                value: '${analytics?.eventsTriggered ?? alerts.length}',
-                label: 'Events Triggered',
-              ),
-              _MetricCard(
-                icon: Icons.schedule_rounded,
-                color: accentColor,
-                value:
-                    '${(analytics?.avgDwellTimeHours ?? 12.5).toStringAsFixed(1)}h',
-                label: 'Avg. Dwell Time',
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
           _Panel(
             title: 'Detection Trends',
             child: SizedBox(
@@ -112,13 +78,13 @@ class AnalyticsScreen extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           sample.typeLabel,
-                          style: const TextStyle(color: Colors.white),
+                          style: TextStyle(color: colors.onSurface),
                         ),
                       ),
                       Text(
                         '$count',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: colors.onSurface,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -178,53 +144,6 @@ class AnalyticsScreen extends ConsumerWidget {
   }
 }
 
-class _MetricCard extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String value;
-  final String label;
-
-  const _MetricCard({
-    required this.icon,
-    required this.color,
-    required this.value,
-    required this.label,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Icon(icon, color: color, size: 28),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.grey, fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _Panel extends StatelessWidget {
   final String title;
   final Widget child;
@@ -233,20 +152,21 @@ class _Panel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: colors.onSurface,
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
@@ -272,6 +192,7 @@ class _TrendBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 3),
@@ -294,8 +215,10 @@ class _TrendBar extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text(label,
-                style: const TextStyle(color: Colors.grey, fontSize: 11)),
+            Text(
+              label,
+              style: TextStyle(color: colors.onSurfaceDim, fontSize: 11),
+            ),
           ],
         ),
       ),

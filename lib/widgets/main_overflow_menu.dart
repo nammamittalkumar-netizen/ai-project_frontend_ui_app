@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_colors.dart';
+
 class MainOverflowMenu extends StatelessWidget {
   final ValueChanged<int> onNavigate;
   final int currentIndex;
@@ -15,31 +17,32 @@ class MainOverflowMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return PopupMenuButton<int>(
-      icon: const Icon(Icons.more_vert_rounded),
+      icon: Icon(Icons.more_vert_rounded, color: colors.onSurface),
       tooltip: 'More',
-      color: const Color(0xFF1A1A1A),
+      color: colors.surface,
       onSelected: onNavigate,
       itemBuilder: (context) => [
         PopupMenuItem<int>(
           value: reportsIndex,
           enabled: currentIndex != reportsIndex,
-          child: const Row(
+          child: Row(
             children: [
-              Icon(Icons.description_rounded, color: Colors.white70),
-              SizedBox(width: 12),
-              Text('Reports'),
+              Icon(Icons.description_rounded, color: colors.onSurface),
+              const SizedBox(width: 12),
+              Text('Reports', style: TextStyle(color: colors.onSurface)),
             ],
           ),
         ),
         PopupMenuItem<int>(
           value: settingsIndex,
           enabled: currentIndex != settingsIndex,
-          child: const Row(
+          child: Row(
             children: [
-              Icon(Icons.settings_rounded, color: Colors.white70),
-              SizedBox(width: 12),
-              Text('Settings'),
+              Icon(Icons.settings_rounded, color: colors.onSurface),
+              const SizedBox(width: 12),
+              Text('Settings', style: TextStyle(color: colors.onSurface)),
             ],
           ),
         ),

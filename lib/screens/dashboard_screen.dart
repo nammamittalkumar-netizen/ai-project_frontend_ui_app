@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/camera.dart';
 import '../providers/providers.dart';
+import '../theme/app_colors.dart';
 import '../widgets/main_overflow_menu.dart';
 import 'alerts_screen.dart';
 
@@ -28,17 +29,18 @@ class DashboardScreen extends ConsumerWidget {
     final isDemo =
         ref.watch(serverConfigProvider.select((config) => config.isDemo));
     final accentColor = Theme.of(context).colorScheme.primary;
+    final colors = AppColors.of(context);
 
     final alerts = alertsAsync.valueOrNull ?? [];
     final detectionCount = alerts.where((a) => a.isDetection).length;
     final systemCount = alerts.where((a) => a.isSystem).length;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF111111),
+      backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Security Hub',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: TextStyle(color: colors.onSurface, fontWeight: FontWeight.w600),
         ),
         actions: [
           Padding(
@@ -76,7 +78,7 @@ class DashboardScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         color: accentColor,
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: colors.surface,
         onRefresh: () async {
           ref.invalidate(camerasProvider);
           ref.invalidate(statusProvider);
@@ -110,22 +112,22 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  const Center(
+                  Center(
                     child: Text(
                       'Server unavailable',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: colors.onSurface,
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Center(
+                  Center(
                     child: Text(
                       'Check the Mini PC, network, or restart the server.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(color: colors.onSurfaceDim),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -149,10 +151,10 @@ class DashboardScreen extends ConsumerWidget {
               return ListView(
                 children: [
                   SizedBox(height: MediaQuery.sizeOf(context).height * 0.35),
-                  const Center(
+                  Center(
                     child: Text(
                       'No cameras found',
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(color: colors.onSurfaceDim),
                     ),
                   ),
                 ],
@@ -208,9 +210,9 @@ class DashboardScreen extends ConsumerWidget {
                     child: Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1A1A1A),
+                        color: colors.surface,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF2A2A2A)),
+                        border: Border.all(color: colors.border),
                       ),
                       child: Row(
                         children: [
@@ -219,11 +221,11 @@ class DashboardScreen extends ConsumerWidget {
                             color: accentColor,
                           ),
                           const SizedBox(width: 10),
-                          const Expanded(
+                          Expanded(
                             child: Text(
                               'AI search, analytics, and alerts are available from the bottom menu. Reports and settings are in the top menu.',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: colors.onSurface,
                                 fontSize: 13,
                                 height: 1.3,
                               ),
@@ -234,13 +236,13 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SliverToBoxAdapter(
+                SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.fromLTRB(12, 18, 12, 8),
+                    padding: const EdgeInsets.fromLTRB(12, 18, 12, 8),
                     child: Text(
                       'Live Camera Feeds',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: colors.onSurface,
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
                       ),
@@ -339,12 +341,13 @@ class _StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -355,8 +358,8 @@ class _StatTile extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: colors.onSurface,
               fontSize: 22,
               fontWeight: FontWeight.w800,
             ),
@@ -365,7 +368,7 @@ class _StatTile extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.grey, fontSize: 11),
+            style: TextStyle(color: colors.onSurfaceDim, fontSize: 11),
           ),
         ],
       ),
@@ -384,6 +387,7 @@ class _CameraCard extends ConsumerWidget {
     final streamUrl = ref.watch(apiServiceProvider).streamUrlForCamera(
           Uri.encodeComponent(camera.id),
         );
+    final colors = AppColors.of(context);
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
@@ -400,9 +404,9 @@ class _CameraCard extends ConsumerWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A),
+          color: colors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF2A2A2A)),
+          border: Border.all(color: colors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -422,10 +426,10 @@ class _CameraCard extends ConsumerWidget {
                         fit: BoxFit.cover,
                         gaplessPlayback: true,
                         errorBuilder: (_, __, ___) =>
-                            const _NoFeedPlaceholder(),
+                            _NoFeedPlaceholder(colors: colors),
                       )
                     else
-                      const _NoFeedPlaceholder(),
+                      _NoFeedPlaceholder(colors: colors),
                     if (camera.isOnline)
                       Positioned(
                         top: 8,
@@ -462,8 +466,8 @@ class _CameraCard extends ConsumerWidget {
                     camera.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: colors.onSurface,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -473,7 +477,7 @@ class _CameraCard extends ConsumerWidget {
                     camera.location,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.grey, fontSize: 11),
+                    style: TextStyle(color: colors.onSurfaceDim, fontSize: 11),
                   ),
                   const SizedBox(height: 7),
                   Row(
@@ -504,17 +508,19 @@ class _CameraCard extends ConsumerWidget {
 }
 
 class _NoFeedPlaceholder extends StatelessWidget {
-  const _NoFeedPlaceholder();
+  final AppColors colors;
+
+  const _NoFeedPlaceholder({required this.colors});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFF222222),
-      child: const Center(
+      color: colors.feedBg,
+      child: Center(
         child: Icon(
           Icons.videocam_off_rounded,
           size: 36,
-          color: Color(0xFF555555),
+          color: colors.feedIcon,
         ),
       ),
     );

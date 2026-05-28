@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/providers.dart';
 import '../services/api_service.dart';
+import '../theme/app_colors.dart';
 import '../widgets/main_overflow_menu.dart';
 import 'setup_screen.dart';
 
@@ -21,25 +22,25 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(serverConfigProvider);
     final accentColor = Theme.of(context).colorScheme.primary;
+    final colors = AppColors.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF111111),
+      backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Settings',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: TextStyle(color: colors.onSurface, fontWeight: FontWeight.w600),
         ),
         actions: [
-          MainOverflowMenu(
-            onNavigate: onNavigate,
-            currentIndex: currentIndex,
-          ),
+          MainOverflowMenu(onNavigate: onNavigate, currentIndex: currentIndex),
         ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           const _SectionTitle('Appearance'),
+          const _ThemeModeToggle(),
+          const SizedBox(height: 8),
           const _AccentColorPicker(),
           const SizedBox(height: 24),
           const _SectionTitle('Server'),
@@ -67,8 +68,8 @@ class SettingsScreen extends ConsumerWidget {
             icon: const Icon(Icons.edit_rounded),
             label: const Text('Edit Server IP'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: Color(0xFF2A2A2A)),
+              foregroundColor: colors.onSurface,
+              side: BorderSide(color: colors.border),
               padding: const EdgeInsets.symmetric(vertical: 13),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -150,6 +151,7 @@ class SettingsScreen extends ConsumerWidget {
     ServerConfig config,
   ) async {
     final accentColor = Theme.of(context).colorScheme.primary;
+    final colors = AppColors.of(context);
     final ipController = TextEditingController(text: config.serverIp);
     final apiPortController = TextEditingController(text: '${config.apiPort}');
     final streamPortController =
@@ -168,7 +170,7 @@ class SettingsScreen extends ConsumerWidget {
               children: [
                 TextFormField(
                   controller: ipController,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: colors.onSurface),
                   decoration: const InputDecoration(labelText: 'Mini PC IP'),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -205,9 +207,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             ElevatedButton(
               onPressed: () async {
-                if (!formKey.currentState!.validate()) {
-                  return;
-                }
+                if (!formKey.currentState!.validate()) return;
                 await ref.read(serverConfigProvider.notifier).save(
                       ip: ipController.text.trim(),
                       apiPort: int.parse(apiPortController.text.trim()),
@@ -240,9 +240,7 @@ class SettingsScreen extends ConsumerWidget {
     ref.invalidate(alertsProvider);
     ref.invalidate(storageStatusProvider);
 
-    if (!context.mounted) {
-      return;
-    }
+    if (!context.mounted) return;
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(builder: (_) => const SetupScreen()),
@@ -262,9 +260,10 @@ class _DialogPortField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return TextFormField(
       controller: controller,
-      style: const TextStyle(color: Colors.white),
+      style: TextStyle(color: colors.onSurface),
       keyboardType: TextInputType.number,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       decoration: InputDecoration(labelText: label),
@@ -286,12 +285,13 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(
-          color: Colors.grey,
+        style: TextStyle(
+          color: colors.onSurfaceDim,
           fontSize: 12,
           letterSpacing: 1,
           fontWeight: FontWeight.w600,
@@ -314,17 +314,18 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
+        border: Border.all(color: colors.border),
       ),
       child: Row(
         children: [
-          Icon(icon, color: Colors.grey, size: 20),
+          Icon(icon, color: colors.onSurfaceDim, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -332,17 +333,60 @@ class _SettingsTile extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  style: TextStyle(color: colors.onSurface, fontSize: 13),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  style: TextStyle(color: colors.onSurfaceDim, fontSize: 12),
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ThemeModeToggle extends ConsumerWidget {
+  const _ThemeModeToggle();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+    final isDark = themeMode == ThemeMode.dark;
+    final colors = AppColors.of(context);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.border),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+            color: colors.onSurfaceDim,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              isDark ? 'Dark Mode' : 'Light Mode',
+              style: TextStyle(color: colors.onSurface, fontSize: 13),
+            ),
+          ),
+          Switch(
+            value: isDark,
+            onChanged: (_) =>
+                ref.read(themeModeProvider.notifier).toggle(),
+            activeThumbColor: Theme.of(context).colorScheme.primary,
           ),
         ],
       ),
@@ -356,24 +400,25 @@ class _AccentColorPicker extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedColor = ref.watch(accentColorProvider);
+    final colors = AppColors.of(context);
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.palette_rounded, color: Colors.grey, size: 20),
-              SizedBox(width: 12),
+              Icon(Icons.palette_rounded, color: colors.onSurfaceDim, size: 20),
+              const SizedBox(width: 12),
               Text(
                 'Theme Color',
-                style: TextStyle(color: Colors.white, fontSize: 13),
+                style: TextStyle(color: colors.onSurface, fontSize: 13),
               ),
             ],
           ),
@@ -400,7 +445,8 @@ class _AccentColorPicker extends ConsumerWidget {
                       color: color,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isSelected ? Colors.white : Colors.transparent,
+                        color:
+                            isSelected ? Colors.white : Colors.transparent,
                         width: 3,
                       ),
                       boxShadow: isSelected
@@ -446,7 +492,6 @@ class _StoragePanelState extends ConsumerState<_StoragePanel> {
   }
 
   Future<void> _cleanup(StorageStatus? storage) async {
-    // When storage is critical, warn the user that recent files will be deleted.
     if (storage != null && storage.status == 'critical') {
       final confirmed = await _showEmergencyDialog(storage);
       if (!mounted || confirmed != true) return;
@@ -477,10 +522,7 @@ class _StoragePanelState extends ConsumerState<_StoragePanel> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(text),
-        duration: const Duration(seconds: 5),
-      ),
+      SnackBar(content: Text(text), duration: const Duration(seconds: 5)),
     );
   }
 
@@ -523,13 +565,14 @@ class _StoragePanelState extends ConsumerState<_StoragePanel> {
     bool isDemo,
     StorageStatus? storage,
   ) {
+    final colors = AppColors.of(context);
     final isCritical = storage?.status == 'critical';
     final isWarning = storage?.status == 'warning';
     final borderColor = isCritical
         ? Colors.redAccent
         : isWarning
             ? Colors.amber
-            : const Color(0xFF2A2A2A);
+            : colors.border;
     final label = _cleaning
         ? 'Cleaning...'
         : isCritical
@@ -553,13 +596,15 @@ class _StoragePanelState extends ConsumerState<_StoragePanel> {
       icon: icon,
       label: Text(
         label,
-        style: TextStyle(color: isCritical ? Colors.redAccent : Colors.white),
+        style: TextStyle(
+            color: isCritical ? Colors.redAccent : colors.onSurface),
       ),
       style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.white,
+        foregroundColor: colors.onSurface,
         side: BorderSide(color: borderColor),
         padding: const EdgeInsets.symmetric(vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
@@ -574,25 +619,25 @@ class _StoragePanelState extends ConsumerState<_StoragePanel> {
     final statusColor = _statusColor(storage?.status);
     final isCritical = storage?.status == 'critical';
     final isWarning = storage?.status == 'warning';
+    final colors = AppColors.of(context);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isCritical
               ? Colors.redAccent.withValues(alpha: 0.5)
               : isWarning
                   ? Colors.amber.withValues(alpha: 0.4)
-                  : const Color(0xFF2A2A2A),
+                  : colors.border,
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header row ───────────────────────────
           Row(
             children: [
               Icon(Icons.storage_rounded, color: statusColor, size: 20),
@@ -602,8 +647,8 @@ class _StoragePanelState extends ConsumerState<_StoragePanel> {
                   storage == null
                       ? 'Storage'
                       : 'Storage  ${storage.usedPercent.toStringAsFixed(1)}% used',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: colors.onSurface,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -622,27 +667,23 @@ class _StoragePanelState extends ConsumerState<_StoragePanel> {
                   padding: EdgeInsets.zero,
                   onPressed: isLoading ? null : _refresh,
                   icon: const Icon(Icons.refresh_rounded, size: 18),
-                  color: Colors.white54,
+                  color: colors.onSurface.withValues(alpha: 0.4),
                   tooltip: 'Refresh',
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-
-          // ── Progress bar ─────────────────────────
           ClipRRect(
             borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(
               minHeight: 10,
               value: storage == null ? 0 : storage.usedPercent / 100,
-              backgroundColor: const Color(0xFF2A2A2A),
+              backgroundColor: colors.border,
               valueColor: AlwaysStoppedAnimation<Color>(statusColor),
             ),
           ),
           const SizedBox(height: 12),
-
-          // ── Used / Free / Total ──────────────────
           if (storage != null)
             Row(
               children: [
@@ -652,12 +693,12 @@ class _StoragePanelState extends ConsumerState<_StoragePanel> {
                 _StorageStatBox(
                     label: 'Free',
                     value: storage.freeText,
-                    color: Colors.white70),
+                    color: colors.onSurface.withValues(alpha: 0.7)),
                 const SizedBox(width: 8),
                 _StorageStatBox(
                     label: 'Total',
                     value: storage.totalText,
-                    color: Colors.white38),
+                    color: colors.onSurface.withValues(alpha: 0.4)),
               ],
             )
           else
@@ -667,16 +708,14 @@ class _StoragePanelState extends ConsumerState<_StoragePanel> {
                   : hasError
                       ? 'Live storage connection unavailable'
                       : 'Storage info unavailable',
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+              style: TextStyle(color: colors.onSurfaceDim, fontSize: 12),
             ),
-
-          // ── Breakdown: recordings / clips / snapshots ──
           if (storage != null &&
               (storage.recordingsCount > 0 ||
                   storage.clipsCount > 0 ||
                   storage.snapshotsCount > 0)) ...[
             const SizedBox(height: 14),
-            const _StorageDivider(),
+            _StorageDivider(),
             const SizedBox(height: 10),
             _StorageBreakdownRow(
               icon: Icons.videocam_rounded,
@@ -699,11 +738,9 @@ class _StoragePanelState extends ConsumerState<_StoragePanel> {
               count: storage.snapshotsCount,
             ),
           ],
-
-          // ── Info: oldest file age + retention + path ──
           if (storage != null) ...[
             const SizedBox(height: 12),
-            const _StorageDivider(),
+            _StorageDivider(),
             const SizedBox(height: 8),
             if (storage.oldestFileDays != null)
               _StorageInfoRow(
@@ -727,8 +764,6 @@ class _StoragePanelState extends ConsumerState<_StoragePanel> {
               ),
           ],
           const SizedBox(height: 12),
-
-          // ── Cleanup button ───────────────────────
           SizedBox(
             width: double.infinity,
             child: _buildCleanupButton(context, isDemo, storage),
@@ -749,8 +784,6 @@ class _StoragePanelState extends ConsumerState<_StoragePanel> {
     }
   }
 }
-
-// ── Storage panel helper widgets ────────────────────────────────────────────
 
 class _StorageStatusBadge extends StatelessWidget {
   final String status;
@@ -830,23 +863,27 @@ class _StorageStatBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFF111111),
+          color: colors.background,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFF2A2A2A)),
+          border: Border.all(color: colors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(value,
                 style: TextStyle(
-                    color: color, fontSize: 13, fontWeight: FontWeight.w600)),
+                    color: color,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600)),
             const SizedBox(height: 2),
             Text(label,
-                style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                style:
+                    TextStyle(color: colors.onSurfaceDim, fontSize: 11)),
           ],
         ),
       ),
@@ -855,11 +892,9 @@ class _StorageStatBox extends StatelessWidget {
 }
 
 class _StorageDivider extends StatelessWidget {
-  const _StorageDivider();
-
   @override
   Widget build(BuildContext context) {
-    return const Divider(color: Color(0xFF2A2A2A), height: 1);
+    return Divider(color: AppColors.of(context).border, height: 1);
   }
 }
 
@@ -877,22 +912,25 @@ class _StorageBreakdownRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Row(
       children: [
-        Icon(icon, color: Colors.white38, size: 15),
+        Icon(icon, color: colors.onSurface.withValues(alpha: 0.3), size: 15),
         const SizedBox(width: 8),
         Expanded(
           child: Text(label,
-              style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              style: TextStyle(
+                  color: colors.onSurface.withValues(alpha: 0.7),
+                  fontSize: 12)),
         ),
         Text(size,
-            style: const TextStyle(
-                color: Colors.white,
+            style: TextStyle(
+                color: colors.onSurface,
                 fontSize: 12,
                 fontWeight: FontWeight.w500)),
         const SizedBox(width: 8),
         Text('$count files',
-            style: const TextStyle(color: Colors.grey, fontSize: 11)),
+            style: TextStyle(color: colors.onSurfaceDim, fontSize: 11)),
       ],
     );
   }
@@ -910,18 +948,19 @@ class _StorageInfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         children: [
-          Icon(icon, color: Colors.white30, size: 13),
+          Icon(icon, color: colors.onSurface.withValues(alpha: 0.25), size: 13),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               text,
               maxLines: overflow ? 1 : null,
               overflow: overflow ? TextOverflow.ellipsis : null,
-              style: const TextStyle(color: Colors.grey, fontSize: 11),
+              style: TextStyle(color: colors.onSurfaceDim, fontSize: 11),
             ),
           ),
         ],
@@ -929,8 +968,6 @@ class _StorageInfoRow extends StatelessWidget {
     );
   }
 }
-
-// ── Notification toggle ──────────────────────────────────────────────────────
 
 class _SettingsToggle extends ConsumerWidget {
   final String settingKey;
@@ -948,35 +985,31 @@ class _SettingsToggle extends ConsumerWidget {
     final settings = ref.watch(notificationSettingsProvider).valueOrNull;
     final isDemo = ref.watch(serverConfigProvider).isDemo;
     final value = settings?[settingKey] ?? true;
+    final colors = AppColors.of(context);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
+        border: Border.all(color: colors.border),
       ),
       child: Row(
         children: [
-          Icon(icon, color: Colors.grey, size: 20),
+          Icon(icon, color: colors.onSurfaceDim, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
+              style: TextStyle(color: colors.onSurface, fontSize: 13),
             ),
           ),
           Switch(
             value: value,
             onChanged: (enabled) async {
-              if (isDemo) {
-                return;
-              }
-              final next = {
-                ...?settings,
-                settingKey: enabled,
-              };
+              if (isDemo) return;
+              final next = {...?settings, settingKey: enabled};
               await ref
                   .read(apiServiceProvider)
                   .updateNotificationSettings(next);

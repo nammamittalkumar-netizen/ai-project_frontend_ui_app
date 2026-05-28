@@ -11,10 +11,16 @@ import 'screens/dashboard_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/setup_screen.dart';
+import 'services/background_service.dart';
+import 'services/notification_service.dart';
+import 'theme/app_colors.dart';
 import 'widgets/alert_popup.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await NotificationService.initialize();
+  await initBackgroundService();
 
   final prefs = await SharedPreferences.getInstance();
   final isDemoMode = prefs.getBool('demo_mode') ?? false;
@@ -34,12 +40,83 @@ Future<void> main() async {
             )
           : null;
 
+  // Load the last-seen alert ID synchronously here — before the widget tree
+  // builds — so there is no race between the async restore and the first
+  // alertsProvider emission. This is what prevents the login popup bug.
+  final savedAlertId = prefs.getString(kBgLastAlertId) ?? '';
+
   runApp(
     ProviderScope(
       overrides: [
         initialServerConfigProvider.overrideWithValue(initialConfig),
+        if (savedAlertId.isNotEmpty)
+          lastAlertIdProvider.overrideWith((ref) => savedAlertId),
       ],
       child: SecurityApp(hasConfig: hasConfig),
+    ),
+  );
+}
+
+ThemeData _buildTheme(Color accentColor, AppColors colors) {
+  final isDark = identical(colors, AppColors.dark);
+  final base = isDark
+      ? ThemeData.dark(useMaterial3: true)
+      : ThemeData.light(useMaterial3: true);
+
+  return base.copyWith(
+    extensions: [colors],
+    colorScheme: (isDark ? ColorScheme.dark : ColorScheme.light)(
+      primary: accentColor,
+      secondary: accentColor,
+      surface: colors.surface,
+      onSurface: colors.onSurface,
+      onSurfaceVariant: colors.onSurfaceDim,
+    ),
+    scaffoldBackgroundColor: colors.background,
+    appBarTheme: AppBarTheme(
+      backgroundColor: colors.background,
+      foregroundColor: colors.onSurface,
+      elevation: 0,
+      centerTitle: false,
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: colors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: colors.surface,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: colors.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: colors.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: accentColor),
+      ),
+      labelStyle: TextStyle(color: colors.onSurfaceDim),
+      helperStyle: TextStyle(color: colors.onSurfaceDim),
+      hintStyle: TextStyle(color: colors.onSurfaceDim),
+    ),
+    popupMenuTheme: PopupMenuThemeData(
+      color: colors.surface,
+      textStyle: TextStyle(color: colors.onSurface),
+    ),
+    bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      backgroundColor: colors.navBg,
+      selectedItemColor: accentColor,
+      unselectedItemColor: colors.onSurfaceDim,
+      type: BottomNavigationBarType.fixed,
     ),
   );
 }
@@ -52,54 +129,14 @@ class SecurityApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final accentColor = Color(ref.watch(accentColorProvider));
+    final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp(
       title: 'Security Hub',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(useMaterial3: true).copyWith(
-        colorScheme: ColorScheme.dark(
-          primary: accentColor,
-          secondary: accentColor,
-          surface: const Color(0xFF1A1A1A),
-          onSurface: Colors.white,
-        ),
-        scaffoldBackgroundColor: const Color(0xFF111111),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF111111),
-          foregroundColor: Colors.white,
-          elevation: 0,
-          centerTitle: false,
-        ),
-        dialogTheme: DialogThemeData(
-          backgroundColor: const Color(0xFF1A1A1A),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: const Color(0xFF1A1A1A),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF2A2A2A)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: accentColor),
-          ),
-          labelStyle: const TextStyle(color: Colors.grey),
-          helperStyle: const TextStyle(color: Colors.grey),
-        ),
-        bottomNavigationBarTheme: BottomNavigationBarThemeData(
-          backgroundColor: const Color(0xFF161616),
-          selectedItemColor: accentColor,
-          unselectedItemColor: Colors.grey,
-          type: BottomNavigationBarType.fixed,
-        ),
-      ),
+      theme: _buildTheme(accentColor, AppColors.light),
+      darkTheme: _buildTheme(accentColor, AppColors.dark),
+      themeMode: themeMode,
       home: hasConfig ? const MainShell() : const SetupScreen(),
     );
   }
@@ -112,38 +149,49 @@ class MainShell extends ConsumerStatefulWidget {
   ConsumerState<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends ConsumerState<MainShell> {
+class _MainShellState extends ConsumerState<MainShell>
+    with WidgetsBindingObserver {
   static const _bottomTabCount = 4;
 
   late PageController _pageController;
   int _index = 0;
   bool _isBottomTapAnimating = false;
   bool _alertsPrimed = false;
+  bool _isInBackground = false;
   AlertSectionFocus _alertSectionFocus = AlertSectionFocus.aiDetections;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
+    WidgetsBinding.instance.addObserver(this);
+    // lastAlertIdProvider is pre-seeded from SharedPreferences in main() before
+    // the widget tree builds — no async race possible here.
+    // _alertsPrimed stays false so the first poll always primes silently,
+    // which prevents a popup for any alert that arrived before this session.
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _isInBackground = state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.hidden;
+  }
+
   void _openMenuTab(int index) {
-    if (_index == index) {
-      return;
-    }
+    if (_index == index) return;
     setState(() => _index = index);
   }
 
   Future<void> _openBottomTab(int index) async {
-    if (_index == index && _pageController.page?.round() == index) {
-      return;
-    }
+    if (_index == index && _pageController.page?.round() == index) return;
 
     if (_index >= _bottomTabCount) {
       _pageController.dispose();
@@ -174,33 +222,46 @@ class _MainShellState extends ConsumerState<MainShell> {
     await _openBottomTab(3);
   }
 
+  // Marks an alert as seen in both RAM and on disk (shared with background service).
+  Future<void> _markAlertSeen(String id) async {
+    ref.read(lastAlertIdProvider.notifier).state = id;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(kBgLastAlertId, id);
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<AsyncValue<List<Alert>>>(alertsProvider, (previous, next) {
-      next.whenData((alerts) {
-        if (alerts.isEmpty) {
-          return;
-        }
+      next.whenData((alerts) async {
+        if (alerts.isEmpty) return;
 
         final latest = alerts.first;
+
         if (!_alertsPrimed) {
           _alertsPrimed = true;
           if (latest.id.isNotEmpty) {
-            ref.read(lastAlertIdProvider.notifier).state = latest.id;
+            await _markAlertSeen(latest.id);
           }
           return;
         }
 
         final lastSeenId = ref.read(lastAlertIdProvider);
-        if (latest.id.isEmpty || latest.id == lastSeenId) {
+        if (latest.id.isEmpty || latest.id == lastSeenId) return;
+
+        await _markAlertSeen(latest.id);
+
+        if (_isInBackground) {
+          // Background service handles its own notifications, but if the
+          // service hasn't fired yet (race), show one here as a fallback.
+          NotificationService.showAlert(
+            title: latest.typeLabelWithEmoji,
+            body: latest.displaySource,
+          );
           return;
         }
 
-        ref.read(lastAlertIdProvider.notifier).state = latest.id;
         Future<void>.microtask(() {
-          if (!context.mounted) {
-            return;
-          }
+          if (!context.mounted) return;
           showDialog<void>(
             context: context,
             barrierDismissible: false,
@@ -238,22 +299,14 @@ class _MainShellState extends ConsumerState<MainShell> {
             controller: _pageController,
             physics: const BouncingScrollPhysics(),
             onPageChanged: (index) {
-              if (_isBottomTapAnimating) {
-                return;
-              }
+              if (_isBottomTapAnimating) return;
               setState(() => _index = index);
             },
             children: bottomScreens,
           )
         : switch (_index) {
-            4 => ReportsScreen(
-                onNavigate: _openMenuTab,
-                currentIndex: _index,
-              ),
-            5 => SettingsScreen(
-                onNavigate: _openMenuTab,
-                currentIndex: _index,
-              ),
+            4 => ReportsScreen(onNavigate: _openMenuTab, currentIndex: _index),
+            5 => SettingsScreen(onNavigate: _openMenuTab, currentIndex: _index),
             _ => DashboardScreen(
                 onNavigate: _openMenuTab,
                 onOpenAlerts: _openAlertsSection,
@@ -266,21 +319,13 @@ class _MainShellState extends ConsumerState<MainShell> {
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Reconnect banner — visible only when server is unreachable
           const _ReconnectBanner(),
-          _MainBottomNav(
-            currentIndex: _index,
-            onTap: _openBottomTab,
-          ),
+          _MainBottomNav(currentIndex: _index, onTap: _openBottomTab),
         ],
       ),
     );
   }
 }
-
-// ── Reconnect banner ──────────────────────────────────────────────────────
-// Shows between the main content and the bottom nav bar whenever the server
-// is unreachable. Disappears automatically once connectivity is restored.
 
 class _ReconnectBanner extends ConsumerWidget {
   const _ReconnectBanner();
@@ -332,20 +377,19 @@ class _MainBottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
-  const _MainBottomNav({
-    required this.currentIndex,
-    required this.onTap,
-  });
+  const _MainBottomNav({required this.currentIndex, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+
     return SafeArea(
       top: false,
       child: Container(
         height: 64,
-        decoration: const BoxDecoration(
-          color: Color(0xFF161616),
-          border: Border(top: BorderSide(color: Color(0xFF242424))),
+        decoration: BoxDecoration(
+          color: colors.navBg,
+          border: Border(top: BorderSide(color: colors.navBorder)),
         ),
         child: Row(
           children: [
@@ -395,8 +439,10 @@ class _MainBottomNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        selected ? Theme.of(context).colorScheme.primary : Colors.grey;
+    final colors = AppColors.of(context);
+    final color = selected
+        ? Theme.of(context).colorScheme.primary
+        : colors.onSurfaceDim;
 
     return Expanded(
       child: InkWell(

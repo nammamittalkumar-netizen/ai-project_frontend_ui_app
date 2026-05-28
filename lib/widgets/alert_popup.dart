@@ -5,11 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/alert.dart';
+import '../theme/app_colors.dart';
 
 class AlertPopup extends StatefulWidget {
   final Alert alert;
-  // Called when user taps "View Alert" — navigates to the Alerts tab.
-  // Optional: if null (e.g. already on Alerts screen) just dismisses.
   final VoidCallback? onViewAlert;
   final bool autoDismiss;
 
@@ -54,18 +53,17 @@ class _AlertPopupState extends State<AlertPopup> {
   Future<void> _playAlertSignal() async {
     try {
       await SystemSound.play(SystemSoundType.alert);
-      await HapticFeedback.vibrate();
-    } catch (_) {
-      // Some platforms do not expose system alert audio or vibration.
-    }
+      await HapticFeedback.heavyImpact();
+      // Double-tap haptic for critical security alerts
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      await HapticFeedback.heavyImpact();
+    } catch (_) {}
   }
 
   Future<void> _initializeVideo() async {
     if (widget.alert.isSystem) return;
     final clipUrl = widget.alert.clipUrl;
-    if (clipUrl == null || clipUrl.isEmpty) {
-      return;
-    }
+    if (clipUrl == null || clipUrl.isEmpty) return;
 
     try {
       final controller = VideoPlayerController.networkUrl(Uri.parse(clipUrl));
@@ -73,13 +71,9 @@ class _AlertPopupState extends State<AlertPopup> {
       await controller.initialize();
       await controller.setLooping(!widget.autoDismiss || _isHeld);
       await controller.play();
-      if (mounted) {
-        setState(() {});
-      }
+      if (mounted) setState(() {});
     } catch (_) {
-      if (mounted) {
-        setState(() => _videoFailed = true);
-      }
+      if (mounted) setState(() => _videoFailed = true);
     }
   }
 
@@ -89,34 +83,27 @@ class _AlertPopupState extends State<AlertPopup> {
         timer.cancel();
         return;
       }
-
       if (_isHeld) {
         timer.cancel();
         return;
       }
-
       if (_secondsLeft <= 1) {
         timer.cancel();
         Navigator.of(context).maybePop();
         return;
       }
-
       setState(() => _secondsLeft--);
     });
   }
 
   Future<void> _holdAlert() async {
-    if (!widget.autoDismiss || _isHeld) {
-      return;
-    }
+    if (!widget.autoDismiss || _isHeld) return;
 
     _timer?.cancel();
     if (_controller?.value.isInitialized ?? false) {
       await _controller?.setLooping(true);
     }
-    if (mounted) {
-      setState(() => _isHeld = true);
-    }
+    if (mounted) setState(() => _isHeld = true);
   }
 
   Future<void> _openFullScreen() async {
@@ -140,8 +127,9 @@ class _AlertPopupState extends State<AlertPopup> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Dialog(
-      backgroundColor: const Color(0xFF1A1A1A),
+      backgroundColor: colors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ConstrainedBox(
         constraints: BoxConstraints(
@@ -187,8 +175,8 @@ class _AlertPopupState extends State<AlertPopup> {
                           widget.alert.displaySource,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.grey,
+                          style: TextStyle(
+                            color: colors.onSurfaceDim,
                             fontSize: 12,
                           ),
                         ),
@@ -245,8 +233,8 @@ class _AlertPopupState extends State<AlertPopup> {
                           child: OutlinedButton(
                             onPressed: () => Navigator.of(context).maybePop(),
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.grey,
-                              side: const BorderSide(color: Color(0xFF3A3A3A)),
+                              foregroundColor: colors.onSurfaceDim,
+                              side: BorderSide(color: colors.buttonBorder),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -305,8 +293,8 @@ class _AlertPopupState extends State<AlertPopup> {
                       child: OutlinedButton(
                         onPressed: () => Navigator.of(context).maybePop(),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.grey,
-                          side: const BorderSide(color: Color(0xFF3A3A3A)),
+                          foregroundColor: colors.onSurfaceDim,
+                          side: BorderSide(color: colors.buttonBorder),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -360,6 +348,7 @@ class _CountdownHoldControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Tooltip(
       message: 'Hold alert',
       child: InkWell(
@@ -380,8 +369,8 @@ class _CountdownHoldControl extends StatelessWidget {
               ),
               Text(
                 '$secondsLeft',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: colors.onSurface,
                   fontWeight: FontWeight.w700,
                   fontSize: 12,
                 ),
@@ -393,7 +382,7 @@ class _CountdownHoldControl extends StatelessWidget {
                   width: 17,
                   height: 17,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A1A),
+                    color: colors.surface,
                     border: Border.all(color: color, width: 1.4),
                     borderRadius: BorderRadius.circular(9),
                   ),
@@ -443,9 +432,7 @@ class _FullScreenIncidentViewerState extends State<_FullScreenIncidentViewer> {
 
   Future<void> _initializeVideo() async {
     final clipUrl = widget.alert.clipUrl;
-    if (clipUrl == null || clipUrl.isEmpty) {
-      return;
-    }
+    if (clipUrl == null || clipUrl.isEmpty) return;
 
     try {
       final controller = VideoPlayerController.networkUrl(Uri.parse(clipUrl));
@@ -453,13 +440,9 @@ class _FullScreenIncidentViewerState extends State<_FullScreenIncidentViewer> {
       await controller.initialize();
       await controller.setLooping(true);
       await controller.play();
-      if (mounted) {
-        setState(() {});
-      }
+      if (mounted) setState(() {});
     } catch (_) {
-      if (mounted) {
-        setState(() => _videoFailed = true);
-      }
+      if (mounted) setState(() => _videoFailed = true);
     }
   }
 
@@ -627,10 +610,7 @@ class _VideoPreview extends StatelessWidget {
         return _SnapshotPreview(url: snapshotUrl!);
       }
       return const _VideoShell(
-        child: Text(
-          'Clip unavailable',
-          style: TextStyle(color: Colors.grey),
-        ),
+        child: Text('Clip unavailable', style: TextStyle(color: Colors.grey)),
       );
     }
 
@@ -693,13 +673,14 @@ class _VideoShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Container(
       height: 160,
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.black,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
+        border: Border.all(color: colors.border),
       ),
       child: Center(child: child),
     );

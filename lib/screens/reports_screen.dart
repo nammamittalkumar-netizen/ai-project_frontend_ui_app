@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/providers.dart';
+import '../theme/app_colors.dart';
 import '../widgets/main_overflow_menu.dart';
 
 class ReportsScreen extends ConsumerWidget {
@@ -19,19 +20,17 @@ class ReportsScreen extends ConsumerWidget {
     final cameras = ref.watch(camerasProvider).valueOrNull ?? [];
     final alerts = ref.watch(alertsProvider).valueOrNull ?? [];
     final isDemo = ref.watch(serverConfigProvider).isDemo;
+    final colors = AppColors.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF111111),
+      backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Reports',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: TextStyle(color: colors.onSurface, fontWeight: FontWeight.w600),
         ),
         actions: [
-          MainOverflowMenu(
-            onNavigate: onNavigate,
-            currentIndex: currentIndex,
-          ),
+          MainOverflowMenu(onNavigate: onNavigate, currentIndex: currentIndex),
         ],
       ),
       body: ListView(
@@ -95,6 +94,7 @@ class _ReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
@@ -105,9 +105,9 @@ class _ReportCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1A),
+            color: colors.surface,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFF2A2A2A)),
+            border: Border.all(color: colors.border),
           ),
           child: Row(
             children: [
@@ -131,21 +131,21 @@ class _ReportCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: colors.onSurface,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       subtitle,
-                      style:
-                          const TextStyle(color: Colors.grey, fontSize: 12),
+                      style: TextStyle(
+                          color: colors.onSurfaceDim, fontSize: 12),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+              Icon(Icons.chevron_right_rounded, color: colors.onSurfaceDim),
             ],
           ),
         ),
@@ -161,9 +161,10 @@ class _ReportCard extends StatelessWidget {
   }
 
   Future<void> _openReport(BuildContext context) async {
+    final colors = AppColors.of(context);
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xFF1A1A1A),
+      backgroundColor: colors.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -176,8 +177,6 @@ class _ReportCard extends StatelessWidget {
     );
   }
 }
-
-// ── Report detail bottom sheet ───────────────────────────────────────────────
 
 class _ReportSheet extends StatefulWidget {
   final String title;
@@ -225,6 +224,7 @@ class _ReportSheetState extends State<_ReportSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return DraggableScrollableSheet(
       initialChildSize: 0.7,
       minChildSize: 0.4,
@@ -233,12 +233,10 @@ class _ReportSheetState extends State<_ReportSheet> {
       builder: (context, scrollController) {
         return Column(
           children: [
-            // Handle + title
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              decoration: const BoxDecoration(
-                border: Border(
-                    bottom: BorderSide(color: Color(0xFF2A2A2A))),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: colors.border)),
               ),
               child: Column(
                 children: [
@@ -247,7 +245,7 @@ class _ReportSheetState extends State<_ReportSheet> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF3A3A3A),
+                        color: colors.border,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -255,8 +253,8 @@ class _ReportSheetState extends State<_ReportSheet> {
                   const SizedBox(height: 12),
                   Text(
                     widget.title,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: colors.onSurface,
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                     ),
@@ -264,19 +262,21 @@ class _ReportSheetState extends State<_ReportSheet> {
                 ],
               ),
             ),
-            // Content
             Expanded(
               child: _loading
-                  ? const Center(
-                      child: CircularProgressIndicator(color: Colors.white54))
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: colors.onSurfaceDim,
+                      ))
                   : _error != null
                       ? Center(
                           child: Text(_error!,
                               style: const TextStyle(color: Colors.red)))
                       : _data == null
-                          ? const Center(
+                          ? Center(
                               child: Text('No data',
-                                  style: TextStyle(color: Colors.grey)))
+                                  style: TextStyle(
+                                      color: colors.onSurfaceDim)))
                           : _buildContent(scrollController),
             ),
           ],
@@ -309,8 +309,6 @@ class _ReportSheetState extends State<_ReportSheet> {
     }
   }
 
-  // ── Camera Activity ────────────────────────────────────────────────────────
-
   List<Widget> _cameraActivityRows(Map<String, dynamic> data) {
     final summary = data['summary'];
     final cameras = data['cameras'];
@@ -339,14 +337,11 @@ class _ReportSheetState extends State<_ReportSheet> {
                 ),
                 title: cam['name']?.toString() ?? '',
                 subtitle: cam['zone']?.toString() ?? '',
-                trailing:
-                    '${cam['events_30d'] ?? 0} events',
+                trailing: '${cam['events_30d'] ?? 0} events',
               ),
             ),
     ];
   }
-
-  // ── Alert Summary ──────────────────────────────────────────────────────────
 
   List<Widget> _alertSummaryRows(Map<String, dynamic> data) {
     final byCategory = data['by_category'];
@@ -358,16 +353,14 @@ class _ReportSheetState extends State<_ReportSheet> {
       if (byCategory is Map<String, dynamic>)
         ...byCategory.entries.map(
           (e) => _DataRow(
-            leading: const Icon(Icons.circle, size: 8,
-                color: Colors.white38),
+            leading:
+                const Icon(Icons.circle, size: 8, color: Colors.white38),
             title: e.key.replaceAll('_', ' ').toUpperCase(),
             trailing: '${e.value}',
           ),
         ),
     ];
   }
-
-  // ── Detection Report ───────────────────────────────────────────────────────
 
   List<Widget> _detectionRows(Map<String, dynamic> data) {
     final byCategory = data['by_category'];
@@ -380,8 +373,8 @@ class _ReportSheetState extends State<_ReportSheet> {
       if (byCategory is Map<String, dynamic>)
         ...byCategory.entries.map(
           (e) => _DataRow(
-            leading: const Icon(Icons.circle, size: 8,
-                color: Colors.white38),
+            leading:
+                const Icon(Icons.circle, size: 8, color: Colors.white38),
             title: e.key.replaceAll('_', ' ').toUpperCase(),
             trailing: '${e.value}',
           ),
@@ -401,8 +394,6 @@ class _ReportSheetState extends State<_ReportSheet> {
     ];
   }
 
-  // ── System Performance ────────────────────────────────────────────────────
-
   List<Widget> _systemRows(Map<String, dynamic> data) {
     final uptimeSecs = (data['uptime_seconds'] as num?)?.toInt() ?? 0;
     final uptimeH = uptimeSecs ~/ 3600;
@@ -414,23 +405,18 @@ class _ReportSheetState extends State<_ReportSheet> {
       _SummaryRow('Cameras Total', '${data['cameras_total'] ?? 0}'),
       _SummaryRow('Cameras Online', '${data['cameras_online'] ?? 0}',
           color: Colors.greenAccent),
-      _SummaryRow('Events Processed',
-          '${data['total_events_processed'] ?? 0}'),
+      _SummaryRow(
+          'Events Processed', '${data['total_events_processed'] ?? 0}'),
     ];
   }
-
-  // ── Generic fallback ──────────────────────────────────────────────────────
 
   List<Widget> _genericRows(Map<String, dynamic> data) {
     return data.entries
         .map((e) => _SummaryRow(
-            e.key.replaceAll('_', ' ').toUpperCase(),
-            '${e.value}'))
+            e.key.replaceAll('_', ' ').toUpperCase(), '${e.value}'))
         .toList();
   }
 }
-
-// ── Small helper widgets ─────────────────────────────────────────────────────
 
 class _SummaryRow extends StatelessWidget {
   final String label;
@@ -441,16 +427,17 @@ class _SummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
-              style: const TextStyle(color: Colors.grey, fontSize: 13)),
+              style: TextStyle(color: colors.onSurfaceDim, fontSize: 13)),
           Text(value,
               style: TextStyle(
-                color: color ?? Colors.white,
+                color: color ?? colors.onSurface,
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
               )),
@@ -475,6 +462,7 @@ class _DataRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(
@@ -486,18 +474,20 @@ class _DataRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: const TextStyle(color: Colors.white, fontSize: 13)),
+                    style: TextStyle(
+                        color: colors.onSurface, fontSize: 13)),
                 if (subtitle != null)
                   Text(subtitle!,
-                      style:
-                          const TextStyle(color: Colors.grey, fontSize: 11)),
+                      style: TextStyle(
+                          color: colors.onSurfaceDim, fontSize: 11)),
               ],
             ),
           ),
           if (trailing != null)
             Text(trailing!,
-                style: const TextStyle(
-                    color: Colors.white70, fontSize: 12)),
+                style: TextStyle(
+                    color: colors.onSurface.withValues(alpha: 0.7),
+                    fontSize: 12)),
         ],
       ),
     );
@@ -509,9 +499,10 @@ class _SheetDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 8),
-      child: Divider(color: Color(0xFF2A2A2A)),
+    final colors = AppColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Divider(color: colors.border),
     );
   }
 }
@@ -522,12 +513,13 @@ class _SheetSectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         title,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: colors.onSurface,
           fontSize: 13,
           fontWeight: FontWeight.w600,
         ),

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../models/alert.dart';
 import '../providers/providers.dart';
+import '../theme/app_colors.dart';
 import '../widgets/alert_popup.dart';
 import '../widgets/main_overflow_menu.dart';
 
@@ -45,13 +46,14 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
   Widget build(BuildContext context) {
     final fallbackAlerts = ref.watch(alertsProvider).valueOrNull ?? [];
     final accentColor = Theme.of(context).colorScheme.primary;
+    final colors = AppColors.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF111111),
+      backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'AI Search',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: TextStyle(color: colors.onSurface, fontWeight: FontWeight.w600),
         ),
         actions: [
           MainOverflowMenu(
@@ -66,9 +68,9 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1A1A),
+              color: colors.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF2A2A2A)),
+              border: Border.all(color: colors.border),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,11 +79,11 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
                   children: [
                     Icon(Icons.auto_awesome_rounded, color: accentColor),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Ask anything about your video footage',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: colors.onSurface,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),
@@ -92,13 +94,12 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: _controller,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: colors.onSurface),
                   minLines: 2,
                   maxLines: 4,
                   decoration: const InputDecoration(
                     hintText:
                         'Example: Show deliveries yesterday, or find after hours activity',
-                    hintStyle: TextStyle(color: Colors.grey),
                   ),
                   onSubmitted: (_) => _search(),
                 ),
@@ -133,9 +134,9 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
           ),
           const SizedBox(height: 18),
           if (_query.isNotEmpty) ...[
-            const _SectionTitle('Search Results'),
+            const _SectionTitle(title: 'Search Results'),
             if ((_results.isEmpty ? fallbackAlerts : _results).isEmpty)
-              const _EmptyResult()
+              _EmptyResult()
             else
               ...(_results.isEmpty ? fallbackAlerts : _results).map(
                 (alert) => GestureDetector(
@@ -149,9 +150,9 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1A1A1A),
+                      color: colors.surface,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFF2A2A2A)),
+                      border: Border.all(color: colors.border),
                     ),
                     child: Row(
                       children: [
@@ -163,16 +164,16 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
                             children: [
                               Text(
                                 alert.typeLabel,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: colors.onSurface,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                               const SizedBox(height: 3),
                               Text(
                                 '${alert.displaySource} · ${DateFormat('MMM d, hh:mm a').format(alert.timestamp)}',
-                                style: const TextStyle(
-                                  color: Colors.grey,
+                                style: TextStyle(
+                                  color: colors.onSurfaceDim,
                                   fontSize: 12,
                                 ),
                               ),
@@ -188,9 +189,9 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
                             ),
                           ),
                         const SizedBox(width: 8),
-                        const Icon(
+                        Icon(
                           Icons.play_circle_outline_rounded,
-                          color: Colors.grey,
+                          color: colors.onSurfaceDim,
                           size: 22,
                         ),
                       ],
@@ -200,7 +201,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
               ),
             const SizedBox(height: 12),
           ],
-          const _SectionTitle('Popular Searches'),
+          const _SectionTitle(title: 'Popular Searches'),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -208,9 +209,10 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
               return ActionChip(
                 label: Text(query),
                 avatar: const Icon(Icons.search_rounded, size: 18),
-                backgroundColor: const Color(0xFF1A1A1A),
-                side: const BorderSide(color: Color(0xFF2A2A2A)),
-                labelStyle: const TextStyle(color: Colors.white),
+                backgroundColor: colors.surface,
+                side: BorderSide(color: colors.border),
+                labelStyle: TextStyle(color: colors.onSurface),
+                iconTheme: IconThemeData(color: colors.onSurfaceDim),
                 onPressed: () {
                   _controller.text = query;
                   _search();
@@ -225,9 +227,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
 
   Future<void> _search() async {
     final value = _controller.text.trim();
-    if (value.isEmpty) {
-      return;
-    }
+    if (value.isEmpty) return;
     setState(() {
       _query = value;
       _isSearching = true;
@@ -236,9 +236,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
     final results = config.isDemo
         ? ref.read(alertsProvider).valueOrNull ?? const <Alert>[]
         : await ref.read(apiServiceProvider).searchAlerts(value);
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
     setState(() {
       _results = results;
       _isSearching = false;
@@ -247,20 +245,19 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
 }
 
 class _EmptyResult extends StatelessWidget {
-  const _EmptyResult();
-
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
+        border: Border.all(color: colors.border),
       ),
-      child: const Text(
+      child: Text(
         'No matching alerts yet. Connect your server or use demo mode to test results.',
-        style: TextStyle(color: Colors.grey),
+        style: TextStyle(color: colors.onSurfaceDim),
       ),
     );
   }
@@ -269,16 +266,17 @@ class _EmptyResult extends StatelessWidget {
 class _SectionTitle extends StatelessWidget {
   final String title;
 
-  const _SectionTitle(this.title);
+  const _SectionTitle({required this.title});
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         title,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: colors.onSurface,
           fontSize: 16,
           fontWeight: FontWeight.w700,
         ),

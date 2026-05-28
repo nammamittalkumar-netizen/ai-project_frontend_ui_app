@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../models/alert.dart';
 import '../providers/providers.dart';
+import '../theme/app_colors.dart';
 import '../widgets/alert_popup.dart';
 import '../widgets/main_overflow_menu.dart';
 
@@ -27,13 +28,14 @@ class AlertsScreen extends ConsumerWidget {
     final connection = ref.watch(connectionStatusProvider).valueOrNull;
     final isOffline = connection == ConnectionStatus.reconnecting;
     final accentColor = Theme.of(context).colorScheme.primary;
+    final colors = AppColors.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF111111),
+      backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           "Today's Alerts",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: TextStyle(color: colors.onSurface, fontWeight: FontWeight.w600),
         ),
         actions: [
           MainOverflowMenu(
@@ -44,7 +46,7 @@ class AlertsScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         color: accentColor,
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: colors.surface,
         onRefresh: () async {
           ref.invalidate(alertsProvider);
           await ref.read(alertsProvider.future);
@@ -75,22 +77,22 @@ class AlertsScreen extends ConsumerWidget {
                     size: 56,
                   ),
                   const SizedBox(height: 12),
-                  const Center(
+                  Center(
                     child: Text(
                       'Alerts paused',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: colors.onSurface,
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Center(
+                  Center(
                     child: Text(
                       'Server is offline. The app will reconnect automatically.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(color: colors.onSurfaceDim),
                     ),
                   ),
                 ],
@@ -101,10 +103,10 @@ class AlertsScreen extends ConsumerWidget {
               return ListView(
                 children: [
                   SizedBox(height: MediaQuery.sizeOf(context).height * 0.35),
-                  const Center(
+                  Center(
                     child: Text(
                       'No alerts today',
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(color: colors.onSurfaceDim),
                     ),
                   ),
                 ],
@@ -166,12 +168,7 @@ class _AlertSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionHeader(
-          icon: icon,
-          title: title,
-          count: count,
-          color: color,
-        ),
+        _SectionHeader(icon: icon, title: title, count: count, color: color),
         if (alerts.isEmpty)
           _EmptySection(message: emptyMessage)
         else
@@ -196,6 +193,7 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
@@ -204,8 +202,8 @@ class _SectionHeader extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             title,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: colors.onSurface,
               fontSize: 15,
               fontWeight: FontWeight.w700,
             ),
@@ -239,18 +237,19 @@ class _EmptySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: colors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
+        border: Border.all(color: colors.border),
       ),
       child: Center(
         child: Text(
           message,
-          style: const TextStyle(color: Colors.grey, fontSize: 13),
+          style: TextStyle(color: colors.onSurfaceDim, fontSize: 13),
         ),
       ),
     );
@@ -264,6 +263,7 @@ class _AlertTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
@@ -277,9 +277,9 @@ class _AlertTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1A),
+            color: colors.surface,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFF2A2A2A)),
+            border: Border.all(color: colors.border),
           ),
           child: Row(
             children: [
@@ -301,8 +301,8 @@ class _AlertTile extends StatelessWidget {
                       alert.typeLabelWithEmoji,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: colors.onSurface,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
@@ -312,7 +312,10 @@ class _AlertTile extends StatelessWidget {
                       alert.displaySource,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      style: TextStyle(
+                        color: colors.onSurfaceDim,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -323,12 +326,12 @@ class _AlertTile extends StatelessWidget {
                 children: [
                   Text(
                     DateFormat('MMM d').format(alert.timestamp),
-                    style: const TextStyle(color: Colors.grey, fontSize: 11),
+                    style: TextStyle(color: colors.onSurfaceDim, fontSize: 11),
                   ),
                   const SizedBox(height: 3),
                   Text(
                     DateFormat('hh:mm a').format(alert.timestamp),
-                    style: const TextStyle(color: Colors.grey, fontSize: 11),
+                    style: TextStyle(color: colors.onSurfaceDim, fontSize: 11),
                   ),
                 ],
               ),
@@ -337,7 +340,7 @@ class _AlertTile extends StatelessWidget {
                 alert.isDetection
                     ? Icons.play_circle_outline_rounded
                     : Icons.info_outline_rounded,
-                color: Colors.grey,
+                color: colors.onSurfaceDim,
                 size: 22,
               ),
             ],
