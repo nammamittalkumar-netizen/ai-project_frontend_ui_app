@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../models/alert.dart';
 import '../providers/providers.dart';
+import '../services/alert_review_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/alert_popup.dart';
 import '../widgets/main_overflow_menu.dart';
@@ -35,7 +36,8 @@ class AlertsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(
           "Today's Alerts",
-          style: TextStyle(color: colors.onSurface, fontWeight: FontWeight.w600),
+          style:
+              TextStyle(color: colors.onSurface, fontWeight: FontWeight.w600),
         ),
         actions: [
           MainOverflowMenu(
@@ -256,19 +258,21 @@ class _EmptySection extends StatelessWidget {
   }
 }
 
-class _AlertTile extends StatelessWidget {
+class _AlertTile extends ConsumerWidget {
   final Alert alert;
 
   const _AlertTile({required this.alert});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = AppColors.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        onTap: () {
+        onTap: () async {
+          await _markReviewed(ref, alert);
+          if (!context.mounted) return;
           showDialog<void>(
             context: context,
             builder: (_) => AlertPopup(alert: alert),
@@ -348,5 +352,15 @@ class _AlertTile extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _markReviewed(WidgetRef ref, Alert alert) async {
+    final key = alertReviewKey(alert);
+    final currentIds = ref.read(reviewedAlertIdsProvider);
+    if (currentIds.contains(key)) return;
+
+    final savedIds = await saveReviewedAlertId(currentIds, key);
+    ref.read(lastAlertIdProvider.notifier).state = key;
+    ref.read(reviewedAlertIdsProvider.notifier).state = savedIds;
   }
 }

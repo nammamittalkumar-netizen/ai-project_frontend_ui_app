@@ -1,8 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+import 'alert_navigation_intent.dart';
 
 class NotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
+  static final _tapController = StreamController<String>.broadcast();
   static bool _initialized = false;
+
+  static Stream<String> get notificationTaps => _tapController.stream;
 
   static Future<void> initialize() async {
     if (_initialized) return;
@@ -19,7 +26,17 @@ class NotificationService {
       iOS: iosSettings,
     );
 
-    await _plugin.initialize(settings);
+    await _plugin.initialize(
+      settings,
+      onDidReceiveNotificationResponse: _handleNotificationResponse,
+    );
+
+    final launchDetails = await _plugin.getNotificationAppLaunchDetails();
+    final launchPayload = launchDetails?.notificationResponse?.payload;
+    if (launchDetails?.didNotificationLaunchApp == true &&
+        launchPayload != null) {
+      await _handlePayload(launchPayload);
+    }
 
     await _plugin
         .resolvePlatformSpecificImplementation<
@@ -51,6 +68,7 @@ class NotificationService {
   static Future<void> showAlert({
     required String title,
     required String body,
+    String payload = kAlertNavigationAi,
   }) async {
     if (!_initialized) await initialize();
 
@@ -80,6 +98,29 @@ class NotificationService {
       title,
       body,
       details,
+      payload: payload,
     );
+  }
+
+  static void _handleNotificationResponse(NotificationResponse response) {
+    final payload = response.payload;
+    if (payload == null) return;
+    _handlePayload(payload);
+  }
+
+  static Future<void> _handlePayload(String payload) async {
+    if (payload != kAlertNavigationAi && payload != kAlertNavigationSystem) {
+      return;
+    }
+
+    // If the app is alive and a listener is attached, hand the tap off live and
+    // do NOT persist — otherwise a leftover intent would hijack the next launch.
+    if (!_tapController.isClosed && _tapController.hasListener) {
+      _tapController.add(payload);
+      return;
+    }
+
+    // Cold-launch path: no live listener yet, so stash the intent for initState.
+    await savePendingAlertNavigation(payload);
   }
 }

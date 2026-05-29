@@ -337,6 +337,8 @@ final alertsProvider = StreamProvider<List<Alert>>((ref) async* {
 
 final lastAlertIdProvider = StateProvider<String?>((ref) => null);
 
+final reviewedAlertIdsProvider = StateProvider<Set<String>>((ref) => const {});
+
 final accentColorProvider =
     StateNotifierProvider<AccentColorNotifier, int>((ref) {
   return AccentColorNotifier();

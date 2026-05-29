@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,6 +14,8 @@ import 'screens/reports_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/setup_screen.dart';
 import 'services/background_service.dart';
+import 'services/alert_navigation_intent.dart';
+import 'services/alert_review_state.dart';
 import 'services/notification_service.dart';
 import 'theme/app_colors.dart';
 import 'widgets/alert_popup.dart';
@@ -40,9 +44,9 @@ Future<void> main() async {
             )
           : null;
 
-  // Load the last-seen alert ID synchronously here — before the widget tree
-  // builds — so there is no race between the async restore and the first
-  // alertsProvider emission. This is what prevents the login popup bug.
+  // Load reviewed alerts before the widget tree builds so reconnect/login
+  // cannot replay already-reviewed alerts as fresh popups.
+  final reviewedAlertIds = await loadReviewedAlertIds();
   final savedAlertId = prefs.getString(kBgLastAlertId) ?? '';
 
   runApp(
@@ -51,6 +55,7 @@ Future<void> main() async {
         initialServerConfigProvider.overrideWithValue(initialConfig),
         if (savedAlertId.isNotEmpty)
           lastAlertIdProvider.overrideWith((ref) => savedAlertId),
+        reviewedAlertIdsProvider.overrideWith((ref) => reviewedAlertIds),
       ],
       child: SecurityApp(hasConfig: hasConfig),
     ),
@@ -158,6 +163,7 @@ class _MainShellState extends ConsumerState<MainShell>
   bool _isBottomTapAnimating = false;
   bool _alertsPrimed = false;
   bool _isInBackground = false;
+  StreamSubscription<String>? _notificationTapSub;
   AlertSectionFocus _alertSectionFocus = AlertSectionFocus.aiDetections;
 
   @override
@@ -165,15 +171,22 @@ class _MainShellState extends ConsumerState<MainShell>
     super.initState();
     _pageController = PageController();
     WidgetsBinding.instance.addObserver(this);
-    // lastAlertIdProvider is pre-seeded from SharedPreferences in main() before
-    // the widget tree builds — no async race possible here.
+    // Reviewed-alert state is pre-seeded from SharedPreferences in main()
+    // before the widget tree builds — no async race possible here.
     // _alertsPrimed stays false so the first poll always primes silently,
     // which prevents a popup for any alert that arrived before this session.
+    _notificationTapSub = NotificationService.notificationTaps.listen(
+      _handleAlertNavigationPayload,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _openPendingAlertNavigation();
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _notificationTapSub?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -183,6 +196,19 @@ class _MainShellState extends ConsumerState<MainShell>
     _isInBackground = state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached ||
         state == AppLifecycleState.hidden;
+
+    if (state == AppLifecycleState.resumed) {
+      _syncReviewedAlertsFromDisk();
+    }
+  }
+
+  Future<void> _syncReviewedAlertsFromDisk() async {
+    final ids = await loadReviewedAlertIds();
+    if (!mounted) return;
+    ref.read(reviewedAlertIdsProvider.notifier).state = ids;
+    if (ids.isNotEmpty) {
+      ref.read(lastAlertIdProvider.notifier).state = ids.first;
+    }
   }
 
   void _openMenuTab(int index) {
@@ -222,11 +248,29 @@ class _MainShellState extends ConsumerState<MainShell>
     await _openBottomTab(3);
   }
 
-  // Marks an alert as seen in both RAM and on disk (shared with background service).
-  Future<void> _markAlertSeen(String id) async {
-    ref.read(lastAlertIdProvider.notifier).state = id;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(kBgLastAlertId, id);
+  Future<void> _openPendingAlertNavigation() async {
+    final payload = await takePendingAlertNavigation();
+    if (!mounted || payload == null) return;
+    await _handleAlertNavigationPayload(payload);
+  }
+
+  Future<void> _handleAlertNavigationPayload(String payload) async {
+    if (!mounted) return;
+    final focus = payload == kAlertNavigationSystem
+        ? AlertSectionFocus.systemAlerts
+        : AlertSectionFocus.aiDetections;
+    await _openAlertsSection(focus);
+  }
+
+  Future<void> _markAlertReviewed(Alert alert) async {
+    final key = alertReviewKey(alert);
+    ref.read(lastAlertIdProvider.notifier).state = key;
+
+    final currentIds = ref.read(reviewedAlertIdsProvider);
+    if (currentIds.contains(key)) return;
+
+    final savedIds = await saveReviewedAlertId(currentIds, key);
+    ref.read(reviewedAlertIdsProvider.notifier).state = savedIds;
   }
 
   @override
@@ -239,16 +283,28 @@ class _MainShellState extends ConsumerState<MainShell>
 
         if (!_alertsPrimed) {
           _alertsPrimed = true;
-          if (latest.id.isNotEmpty) {
-            await _markAlertSeen(latest.id);
-          }
+          await _markAlertReviewed(latest);
           return;
         }
 
+        final latestKey = alertReviewKey(latest);
+        final reviewedIds = ref.read(reviewedAlertIdsProvider);
         final lastSeenId = ref.read(lastAlertIdProvider);
-        if (latest.id.isEmpty || latest.id == lastSeenId) return;
+        if (latestKey.isEmpty ||
+            latestKey == lastSeenId ||
+            reviewedIds.contains(latestKey)) {
+          return;
+        }
 
-        await _markAlertSeen(latest.id);
+        final persistedReviewedIds = await loadReviewedAlertIds();
+        if (persistedReviewedIds.contains(latestKey)) {
+          ref.read(reviewedAlertIdsProvider.notifier).state =
+              persistedReviewedIds;
+          ref.read(lastAlertIdProvider.notifier).state = latestKey;
+          return;
+        }
+
+        await _markAlertReviewed(latest);
 
         if (_isInBackground) {
           // Background service handles its own notifications, but if the
@@ -256,6 +312,8 @@ class _MainShellState extends ConsumerState<MainShell>
           NotificationService.showAlert(
             title: latest.typeLabelWithEmoji,
             body: latest.displaySource,
+            payload:
+                latest.isSystem ? kAlertNavigationSystem : kAlertNavigationAi,
           );
           return;
         }
@@ -440,9 +498,8 @@ class _MainBottomNavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
-    final color = selected
-        ? Theme.of(context).colorScheme.primary
-        : colors.onSurfaceDim;
+    final color =
+        selected ? Theme.of(context).colorScheme.primary : colors.onSurfaceDim;
 
     return Expanded(
       child: InkWell(

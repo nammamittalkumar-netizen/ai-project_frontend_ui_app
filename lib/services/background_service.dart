@@ -7,10 +7,11 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'alert_navigation_intent.dart';
+import 'alert_review_state.dart';
+
 // SharedPreferences key shared between background service and main app.
 // Both sides read/write this so they don't double-notify for the same alert.
-const kBgLastAlertId = 'bg_last_alert_id';
-
 const _kServiceChannelId = 'security_service';
 const _kAlertChannelId = 'security_alerts';
 const _kServiceNotifId = 999;
@@ -45,6 +46,7 @@ Future<void> initBackgroundService() async {
       initialNotificationTitle: 'Security Hub',
       initialNotificationContent: 'Monitoring for alerts…',
       foregroundServiceNotificationId: _kServiceNotifId,
+      foregroundServiceTypes: [AndroidForegroundType.dataSync],
     ),
     iosConfiguration: IosConfiguration(
       autoStart: true,
@@ -105,29 +107,38 @@ Future<void> _pollAndNotify(FlutterLocalNotificationsPlugin plugin) async {
     // Read the last-seen ID — shared with the main app.
     final lastId = prefs.getString(kBgLastAlertId) ?? '';
 
-    final response = await http
-        .get(
-          Uri.parse('$apiUrl/alerts?limit=1'),
-          headers: {'Accept': 'application/json'},
-        )
-        .timeout(const Duration(seconds: 5));
+    final today = DateTime.now();
+    final dateFrom = DateTime(today.year, today.month, today.day);
+    final uri = Uri.parse('$apiUrl/api/events').replace(
+      queryParameters: {
+        'limit': '1',
+        'date_from': dateFrom.toIso8601String(),
+      },
+    );
+    final response = await http.get(
+      uri,
+      headers: {'Accept': 'application/json'},
+    ).timeout(const Duration(seconds: 5));
 
     if (response.statusCode != 200) return;
 
     final dynamic body = jsonDecode(response.body);
-    final List<dynamic> list =
-        body is List ? body : ((body as Map)['alerts'] as List? ?? []);
+    final List<dynamic> list = body is List
+        ? body
+        : body is Map
+            ? (body['alerts'] as List? ?? body['events'] as List? ?? [])
+            : [];
     if (list.isEmpty) return;
 
     final latest = list.first as Map<String, dynamic>;
-    final latestId = '${latest['id'] ?? ''}';
+    final latestId = '${latest['id'] ?? latest['event_id'] ?? ''}';
     if (latestId.isEmpty || latestId == lastId) return;
 
     // Mark as seen BEFORE showing the notification so the main app won't
     // show a duplicate popup when it comes to the foreground.
     await prefs.setString(kBgLastAlertId, latestId);
 
-    final type = '${latest['type'] ?? ''}';
+    final type = '${latest['type'] ?? latest['detection_type'] ?? ''}';
     final camera = '${latest['camera_name'] ?? ''}';
 
     await plugin.show(
@@ -150,6 +161,7 @@ Future<void> _pollAndNotify(FlutterLocalNotificationsPlugin plugin) async {
           presentSound: true,
         ),
       ),
+      payload: alertNavigationPayloadForType(type),
     );
   } catch (_) {}
 }
