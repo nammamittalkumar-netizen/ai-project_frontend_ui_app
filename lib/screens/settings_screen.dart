@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/providers.dart';
 import '../services/api_service.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_ui.dart';
 import '../widgets/main_overflow_menu.dart';
 import 'setup_screen.dart';
 
@@ -27,17 +28,42 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: Text(
-          'Settings',
-          style: TextStyle(color: colors.onSurface, fontWeight: FontWeight.w600),
-        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         actions: [
           MainOverflowMenu(onNavigate: onNavigate, currentIndex: currentIndex),
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 4, 0, 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Settings',
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.8,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  config.isDemo ? 'Demo mode' : 'Server & preferences',
+                  style: TextStyle(
+                    color: colors.onSurfaceDim,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
           const _SectionTitle('Appearance'),
           const _ThemeModeToggle(),
           const SizedBox(height: 8),
@@ -70,42 +96,57 @@ class SettingsScreen extends ConsumerWidget {
             style: OutlinedButton.styleFrom(
               foregroundColor: colors.onSurface,
               side: BorderSide(color: colors.border),
-              padding: const EdgeInsets.symmetric(vertical: 13),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
+              padding: const EdgeInsets.symmetric(vertical: 15),
+              shape: appButtonShape,
             ),
           ),
           const SizedBox(height: 24),
           const _SectionTitle('Storage'),
           const _StoragePanel(),
           const SizedBox(height: 24),
-          const _SectionTitle('Notifications'),
+          const _SectionTitle('PPE Violation Alerts'),
           const _SettingsToggle(
-            settingKey: 'fire',
-            title: 'Fire Detection',
-            icon: Icons.local_fire_department_rounded,
+            settingKey: 'no_helmet',
+            title: 'No Helmet',
+            icon: Icons.engineering_rounded,
           ),
           const _SettingsToggle(
-            settingKey: 'smoke',
-            title: 'Smoke Detection',
-            icon: Icons.cloud_rounded,
+            settingKey: 'no_vest',
+            title: 'No Safety Vest',
+            icon: Icons.checkroom_rounded,
           ),
           const _SettingsToggle(
-            settingKey: 'liquid_spill',
-            title: 'Liquid Spill',
-            icon: Icons.water_drop_rounded,
+            settingKey: 'no_gloves',
+            title: 'No Gloves',
+            icon: Icons.back_hand_rounded,
           ),
           const _SettingsToggle(
-            settingKey: 'suspicious_activity',
-            title: 'Suspicious Activity',
+            settingKey: 'no_goggles',
+            title: 'No Goggles',
             icon: Icons.visibility_rounded,
           ),
           const _SettingsToggle(
-            settingKey: 'fall_down',
-            title: 'Fall Detection',
-            icon: Icons.personal_injury_rounded,
+            settingKey: 'no_face_mask',
+            title: 'No Face Mask',
+            icon: Icons.masks_rounded,
           ),
+          const _SettingsToggle(
+            settingKey: 'no_safety_shoes',
+            title: 'No Safety Shoes',
+            icon: Icons.hiking_rounded,
+          ),
+          const _SettingsToggle(
+            settingKey: 'no_harness',
+            title: 'No Harness',
+            icon: Icons.link_rounded,
+          ),
+          const _SettingsToggle(
+            settingKey: 'no_ear_protection',
+            title: 'No Ear Protection',
+            icon: Icons.hearing_rounded,
+          ),
+          const SizedBox(height: 24),
+          const _SectionTitle('System Notifications'),
           const _SettingsToggle(
             settingKey: 'camera_offline',
             title: 'Camera Offline',
@@ -134,10 +175,8 @@ class SettingsScreen extends ConsumerWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: accentColor,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
+              padding: const EdgeInsets.symmetric(vertical: 15),
+              shape: appButtonShape,
             ),
           ),
         ],
@@ -318,11 +357,7 @@ class _SettingsTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: colors.border),
-      ),
+      decoration: appCard(colors, radius: kTileRadius),
       child: Row(
         children: [
           Icon(icon, color: colors.onSurfaceDim, size: 20),
@@ -363,11 +398,7 @@ class _ThemeModeToggle extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: colors.border),
-      ),
+      decoration: appCard(colors, radius: kTileRadius),
       child: Row(
         children: [
           Icon(
@@ -404,11 +435,7 @@ class _AccentColorPicker extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: colors.border),
-      ),
+      decoration: appCard(colors, radius: kTileRadius),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -602,9 +629,8 @@ class _StoragePanelState extends ConsumerState<_StoragePanel> {
       style: OutlinedButton.styleFrom(
         foregroundColor: colors.onSurface,
         side: BorderSide(color: borderColor),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: appButtonShape,
       ),
     );
   }
@@ -623,10 +649,11 @@ class _StoragePanelState extends ConsumerState<_StoragePanel> {
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(kCardRadius),
+        boxShadow: appCardShadow,
         border: Border.all(
           color: isCritical
               ? Colors.redAccent.withValues(alpha: 0.5)
@@ -990,11 +1017,7 @@ class _SettingsToggle extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: colors.border),
-      ),
+      decoration: appCard(colors, radius: kTileRadius),
       child: Row(
         children: [
           Icon(icon, color: colors.onSurfaceDim, size: 20),

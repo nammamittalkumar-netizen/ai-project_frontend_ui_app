@@ -7,6 +7,17 @@ import '../theme/app_colors.dart';
 import '../widgets/main_overflow_menu.dart';
 import 'alerts_screen.dart';
 
+// ── Premium bento accent palette (visual layer only) ───────────────────────
+const _accentLime = Color(0xFFC6F24E);
+const _accentYellow = Color(0xFFF5D24C);
+const _accentLavender = Color(0xFFCEC2F2);
+const _accentBlue = Color(0xFF63A8FF);
+const _onFilled = Color(0xFF14140E);
+
+const List<BoxShadow> _cardShadow = [
+  BoxShadow(color: Color(0x2E000000), blurRadius: 22, offset: Offset(0, 10)),
+];
+
 class DashboardScreen extends ConsumerWidget {
   final ValueChanged<int> onNavigate;
   final ValueChanged<AlertSectionFocus> onOpenAlerts;
@@ -38,13 +49,13 @@ class DashboardScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: Text(
-          'Security Hub',
-          style: TextStyle(color: colors.onSurface, fontWeight: FontWeight.w600),
-        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        titleSpacing: 20,
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: 4),
             child: Center(
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -169,65 +180,129 @@ class DashboardScreen extends ConsumerWidget {
                 : '${status.uptimePercent.toStringAsFixed(1)}%';
             return CustomScrollView(
               slivers: [
+                // ── Hero header ───────────────────────────────────────────
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Security Hub',
+                          style: TextStyle(
+                            color: colors.onSurface,
+                            fontSize: 34,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.8,
+                            height: 1.05,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: onlineCount > 0
+                                    ? _accentLime
+                                    : Colors.redAccent,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '$onlineCount of $totalCount cameras live',
+                              style: TextStyle(
+                                color: colors.onSurfaceDim,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // ── Bento stat grid ───────────────────────────────────────
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                   sliver: SliverGrid.count(
                     crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 1.45,
+                    crossAxisSpacing: 14,
+                    mainAxisSpacing: 14,
+                    childAspectRatio: 1.28,
                     children: [
-                      _StatTile(
+                      _BentoStat(
                         icon: Icons.videocam_rounded,
                         value: '$onlineCount/$totalCount',
                         label: 'Active Cameras',
-                        color: Colors.lightBlueAccent,
+                        accent: _accentBlue,
                       ),
-                      _StatTile(
+                      _BentoStat(
                         icon: Icons.psychology_rounded,
                         value: '$detectionCount',
-                        label: 'AI Detections Today',
-                        color: Colors.greenAccent,
+                        label: 'AI Detections',
+                        accent: _accentLime,
+                        filled: true,
                       ),
-                      _StatTile(
+                      _BentoStat(
                         icon: Icons.settings_rounded,
                         value: '$systemCount',
-                        label: 'System Alerts Today',
-                        color: Colors.amber,
+                        label: 'System Alerts',
+                        accent: _accentYellow,
+                        filled: true,
                       ),
-                      _StatTile(
+                      _BentoStat(
                         icon: Icons.dns_rounded,
                         value: uptime,
                         label: 'System Uptime',
-                        color: accentColor,
+                        accent: _accentLavender,
+                        filled: true,
                       ),
                     ],
                   ),
                 ),
+                // ── AI recommendation card ────────────────────────────────
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                     child: Container(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         color: colors.surface,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(24),
                         border: Border.all(color: colors.border),
+                        boxShadow: _cardShadow,
                       ),
                       child: Row(
                         children: [
-                          Icon(
-                            Icons.auto_awesome_rounded,
-                            color: accentColor,
+                          Container(
+                            width: 46,
+                            height: 46,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(15),
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [_accentLime, _accentBlue],
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.auto_awesome_rounded,
+                              color: _onFilled,
+                              size: 24,
+                            ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 14),
                           Expanded(
                             child: Text(
                               'AI search, analytics, and alerts are available from the bottom menu. Reports and settings are in the top menu.',
                               style: TextStyle(
                                 color: colors.onSurface,
-                                fontSize: 13,
-                                height: 1.3,
+                                fontSize: 13.5,
+                                height: 1.35,
                               ),
                             ),
                           ),
@@ -236,28 +311,30 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
+                // ── Section title ─────────────────────────────────────────
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 18, 12, 8),
+                    padding: const EdgeInsets.fromLTRB(20, 28, 20, 14),
                     child: Text(
                       'Live Camera Feeds',
                       style: TextStyle(
                         color: colors.onSurface,
-                        fontSize: 17,
+                        fontSize: 22,
                         fontWeight: FontWeight.w700,
+                        letterSpacing: -0.4,
                       ),
                     ),
                   ),
                 ),
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                   sliver: SliverGrid(
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: 0.9,
+                      crossAxisSpacing: 14,
+                      mainAxisSpacing: 14,
+                      childAspectRatio: 0.88,
                     ),
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
@@ -304,7 +381,7 @@ class _AlertCounterChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(20),
@@ -316,7 +393,11 @@ class _AlertCounterChip extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 '$count',
-                style: TextStyle(color: foregroundColor, fontSize: 12),
+                style: TextStyle(
+                  color: foregroundColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
@@ -326,49 +407,83 @@ class _AlertCounterChip extends StatelessWidget {
   }
 }
 
-class _StatTile extends StatelessWidget {
+class _BentoStat extends StatelessWidget {
   final IconData icon;
   final String value;
   final String label;
-  final Color color;
+  final Color accent;
+  final bool filled;
 
-  const _StatTile({
+  const _BentoStat({
     required this.icon,
     required this.value,
     required this.label,
-    required this.color,
+    required this.accent,
+    this.filled = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+
+    final Color bg = filled ? accent : colors.surface;
+    final Color valueColor = filled ? _onFilled : colors.onSurface;
+    final Color labelColor =
+        filled ? _onFilled.withValues(alpha: 0.62) : colors.onSurfaceDim;
+    final Color iconBg =
+        filled ? Colors.black.withValues(alpha: 0.12) : accent.withValues(alpha: 0.16);
+    final Color iconColor = filled ? _onFilled : accent;
+
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.border),
+        color: bg,
+        borderRadius: BorderRadius.circular(24),
+        border: filled ? null : Border.all(color: colors.border),
+        boxShadow: _cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(icon, color: color, size: 24),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: labelColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    height: 1.2,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: iconColor, size: 18),
+              ),
+            ],
+          ),
           Text(
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: colors.onSurface,
-              fontSize: 22,
+              color: valueColor,
+              fontSize: 30,
               fontWeight: FontWeight.w800,
+              letterSpacing: -0.6,
             ),
-          ),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: colors.onSurfaceDim, fontSize: 11),
           ),
         ],
       ),
@@ -390,7 +505,7 @@ class _CameraCard extends ConsumerWidget {
     final colors = AppColors.of(context);
 
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(24),
       onTap: () {
         Navigator.of(context).push(
           MaterialPageRoute<void>(
@@ -405,8 +520,9 @@ class _CameraCard extends ConsumerWidget {
       child: Container(
         decoration: BoxDecoration(
           color: colors.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(color: colors.border),
+          boxShadow: _cardShadow,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -414,7 +530,7 @@ class _CameraCard extends ConsumerWidget {
             Expanded(
               child: ClipRRect(
                 borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(12)),
+                    const BorderRadius.vertical(top: Radius.circular(24)),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -432,24 +548,39 @@ class _CameraCard extends ConsumerWidget {
                       _NoFeedPlaceholder(colors: colors),
                     if (camera.isOnline)
                       Positioned(
-                        top: 8,
-                        left: 8,
+                        top: 10,
+                        left: 10,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 7,
-                            vertical: 3,
+                            horizontal: 9,
+                            vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            borderRadius: BorderRadius.circular(4),
+                            color: Colors.black.withValues(alpha: 0.55),
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Text(
-                            'REC',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                            ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 7,
+                                height: 7,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Color(0xFFFF4D4D),
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                              const Text(
+                                'REC',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -458,7 +589,7 @@ class _CameraCard extends ConsumerWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -468,8 +599,8 @@ class _CameraCard extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: colors.onSurface,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -479,20 +610,28 @@ class _CameraCard extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: colors.onSurfaceDim, fontSize: 11),
                   ),
-                  const SizedBox(height: 7),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(
-                        Icons.circle,
-                        size: 8,
-                        color: camera.isOnline ? Colors.green : Colors.red,
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: camera.isOnline
+                              ? const Color(0xFF4ADE80)
+                              : Colors.red,
+                        ),
                       ),
-                      const SizedBox(width: 5),
+                      const SizedBox(width: 6),
                       Text(
                         camera.isOnline ? 'Online' : 'Offline',
                         style: TextStyle(
-                          color: camera.isOnline ? Colors.green : Colors.red,
+                          color: camera.isOnline
+                              ? const Color(0xFF4ADE80)
+                              : Colors.red,
                           fontSize: 11,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],

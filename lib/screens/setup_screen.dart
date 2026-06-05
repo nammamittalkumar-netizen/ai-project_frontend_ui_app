@@ -6,6 +6,7 @@ import '../main.dart';
 import '../providers/providers.dart';
 import '../services/api_service.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_ui.dart';
 
 class SetupScreen extends ConsumerStatefulWidget {
   const SetupScreen({super.key});
@@ -132,19 +133,35 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(
-                      Icons.security_rounded,
-                      color: accentColor,
-                      size: 48,
+                    Center(
+                      child: Container(
+                        width: 76,
+                        height: 76,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [appAccentLime, appAccentBlue],
+                          ),
+                          boxShadow: appCardShadow,
+                        ),
+                        child: const Icon(
+                          Icons.security_rounded,
+                          color: appOnFilled,
+                          size: 38,
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     Text(
                       'Security Hub',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: colors.onSurface,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.6,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -158,12 +175,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                     ),
                     const SizedBox(height: 28),
                     Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: colors.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: colors.border),
-                      ),
+                      padding: const EdgeInsets.all(20),
+                      decoration: appCard(colors),
                       child: Column(
                         children: [
                           TextFormField(
@@ -252,10 +265,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                                 disabledBackgroundColor:
                                     accentColor.withValues(alpha: 0.45),
                                 padding: const EdgeInsets.symmetric(
-                                    vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
+                                    vertical: 15),
+                                shape: appButtonShape,
                               ),
                             ),
                           ),
@@ -271,10 +282,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                                 foregroundColor: colors.onSurface,
                                 side: BorderSide(color: colors.border),
                                 padding: const EdgeInsets.symmetric(
-                                    vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
+                                    vertical: 15),
+                                shape: appButtonShape,
                               ),
                             ),
                           ),
@@ -328,12 +337,8 @@ class _HelperCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.border),
-      ),
+      padding: const EdgeInsets.all(18),
+      decoration: appCard(colors),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

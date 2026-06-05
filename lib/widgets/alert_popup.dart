@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import 'package:video_player/video_player.dart';
 
 import '../models/alert.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_ui.dart';
 
 class AlertPopup extends StatefulWidget {
   final Alert alert;
@@ -129,32 +131,45 @@ class _AlertPopupState extends State<AlertPopup> {
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     return Dialog(
-      backgroundColor: colors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.82,
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: widget.alert.typeColor.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      widget.alert.typeIcon,
-                      color: widget.alert.typeColor,
-                      size: 28,
-                    ),
-                  ),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
+            decoration: BoxDecoration(
+              color: colors.surface.withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: colors.border),
+              boxShadow: appCardShadow,
+            ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.82,
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color:
+                                widget.alert.typeColor.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Icon(
+                            widget.alert.typeIcon,
+                            color: widget.alert.typeColor,
+                            size: 28,
+                          ),
+                        ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -236,7 +251,7 @@ class _AlertPopupState extends State<AlertPopup> {
                               foregroundColor: colors.onSurfaceDim,
                               side: BorderSide(color: colors.buttonBorder),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(16),
                               ),
                             ),
                             child: const Text('Dismiss'),
@@ -254,7 +269,7 @@ class _AlertPopupState extends State<AlertPopup> {
                                   Theme.of(context).colorScheme.primary,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(16),
                               ),
                             ),
                             child: const Text('View Alert'),
@@ -278,7 +293,7 @@ class _AlertPopupState extends State<AlertPopup> {
                             backgroundColor: widget.alert.typeColor,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
                         ),
@@ -296,7 +311,7 @@ class _AlertPopupState extends State<AlertPopup> {
                           foregroundColor: colors.onSurfaceDim,
                           side: BorderSide(color: colors.buttonBorder),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                         child: const Text('Close'),
@@ -317,7 +332,7 @@ class _AlertPopupState extends State<AlertPopup> {
                             backgroundColor: widget.alert.typeColor,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
                         ),
@@ -327,8 +342,11 @@ class _AlertPopupState extends State<AlertPopup> {
                 ),
             ],
           ),
+                ),
+              ),
+            ),
+          ),
         ),
-      ),
     );
   }
 }

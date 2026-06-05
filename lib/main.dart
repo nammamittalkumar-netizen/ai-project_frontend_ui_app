@@ -444,10 +444,19 @@ class _MainBottomNav extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Container(
-        height: 64,
+        margin: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+        height: 68,
         decoration: BoxDecoration(
           color: colors.navBg,
-          border: Border(top: BorderSide(color: colors.navBorder)),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: colors.navBorder),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x40000000),
+              blurRadius: 24,
+              offset: Offset(0, 10),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -498,18 +507,30 @@ class _MainBottomNavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
-    final color =
-        selected ? Theme.of(context).colorScheme.primary : colors.onSurfaceDim;
+    final accent = Theme.of(context).colorScheme.primary;
+    final color = selected ? accent : colors.onSurfaceDim;
 
     return Expanded(
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
         child: SizedBox.expand(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
+                width: selected ? 18 : 0,
+                height: 3,
+                margin: const EdgeInsets.only(bottom: 6),
+                decoration: BoxDecoration(
+                  color: accent,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
               Icon(icon, color: color, size: 23),
-              const SizedBox(height: 3),
+              const SizedBox(height: 4),
               Text(
                 label,
                 maxLines: 1,

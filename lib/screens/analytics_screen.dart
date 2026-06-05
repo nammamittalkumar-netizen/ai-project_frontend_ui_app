@@ -5,6 +5,7 @@ import '../models/alert.dart';
 import '../providers/providers.dart';
 import '../services/api_service.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_ui.dart';
 import '../widgets/main_overflow_menu.dart';
 
 class AnalyticsScreen extends ConsumerWidget {
@@ -27,13 +28,9 @@ class AnalyticsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: Text(
-          'Analytics',
-          style: TextStyle(
-            color: colors.onSurface,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         actions: [
           MainOverflowMenu(
             onNavigate: onNavigate,
@@ -42,8 +39,34 @@ class AnalyticsScreen extends ConsumerWidget {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 4, 0, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Analytics',
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.8,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Detection insights & trends',
+                  style: TextStyle(
+                    color: colors.onSurfaceDim,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
           _Panel(
             title: 'Detection Trends',
             child: SizedBox(
@@ -56,7 +79,7 @@ class AnalyticsScreen extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           _Panel(
             title: 'Top Detection Categories',
             child: Column(
@@ -70,22 +93,35 @@ class AnalyticsScreen extends ConsumerWidget {
                   timestamp: DateTime.now(),
                 );
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 14),
                   child: Row(
                     children: [
-                      Icon(sample.typeIcon, color: sample.typeColor),
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: sample.typeColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(sample.typeIcon,
+                            color: sample.typeColor, size: 20),
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           sample.typeLabel,
-                          style: TextStyle(color: colors.onSurface),
+                          style: TextStyle(
+                            color: colors.onSurface,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                       Text(
                         '$count',
                         style: TextStyle(
                           color: colors.onSurface,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ],
@@ -129,11 +165,25 @@ class AnalyticsScreen extends ConsumerWidget {
     AlertType type,
   ) {
     final key = switch (type) {
-      AlertType.fire => 'fire_detected',
-      AlertType.smoke => 'smoke_detected',
-      AlertType.liquidSpill => 'liquid_spill',
-      AlertType.suspicious => 'suspicious_activity',
-      AlertType.fall => 'person_fall',
+      AlertType.noHelmet => 'no_helmet',
+      AlertType.noVest => 'no_vest',
+      AlertType.noGloves => 'no_gloves',
+      AlertType.noGoggles => 'no_goggles',
+      AlertType.noFaceMask => 'no_face_mask',
+      AlertType.noSafetyShoes => 'no_safety_shoes',
+      AlertType.noHarness => 'no_harness',
+      AlertType.noEarProtection => 'no_ear_protection',
+      AlertType.helmet => 'helmet',
+      AlertType.safetyVest => 'safety_vest',
+      AlertType.gloves => 'gloves',
+      AlertType.goggles => 'goggles',
+      AlertType.faceMask => 'face_mask',
+      AlertType.safetyShoes => 'safety_shoes',
+      AlertType.harness => 'harness',
+      AlertType.earProtection => 'ear_protection',
+      AlertType.protectiveSuit => 'protective_suit',
+      AlertType.apron => 'apron',
+      AlertType.faceShield => 'face_shield',
       AlertType.cameraOffline => 'camera_offline',
       AlertType.cameraOnline => 'camera_online',
       AlertType.storageWarning => 'storage_warning',
@@ -154,12 +204,8 @@ class _Panel extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.border),
-      ),
+      padding: const EdgeInsets.all(18),
+      decoration: appCard(colors),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -167,11 +213,12 @@ class _Panel extends StatelessWidget {
             title,
             style: TextStyle(
               color: colors.onSurface,
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: FontWeight.w700,
+              letterSpacing: -0.3,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 18),
           child,
         ],
       ),
@@ -204,17 +251,28 @@ class _TrendBar extends StatelessWidget {
                 alignment: Alignment.bottomCenter,
                 child: FractionallySizedBox(
                   heightFactor: value / 100,
-                  widthFactor: 0.72,
+                  widthFactor: 0.66,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(6),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [color, color.withValues(alpha: 0.45)],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: color.withValues(alpha: 0.35),
+                          blurRadius: 12,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               label,
               style: TextStyle(color: colors.onSurfaceDim, fontSize: 11),

@@ -6,6 +6,7 @@ import '../models/alert.dart';
 import '../providers/providers.dart';
 import '../services/alert_review_state.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_ui.dart';
 import '../widgets/alert_popup.dart';
 import '../widgets/main_overflow_menu.dart';
 
@@ -34,11 +35,9 @@ class AlertsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: Text(
-          "Today's Alerts",
-          style:
-              TextStyle(color: colors.onSurface, fontWeight: FontWeight.w600),
-        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         actions: [
           MainOverflowMenu(
             onNavigate: onNavigate,
@@ -125,7 +124,7 @@ class AlertsScreen extends ConsumerWidget {
               emptyMessage: 'No detections today',
               alerts: detectionAlerts,
             );
-            const sectionGap = SizedBox(height: 20);
+            const sectionGap = SizedBox(height: 24);
             final systemSection = _AlertSection(
               icon: Icons.settings_rounded,
               title: 'System Alerts',
@@ -135,11 +134,38 @@ class AlertsScreen extends ConsumerWidget {
               alerts: systemAlerts,
             );
 
+            final header = Padding(
+              padding: const EdgeInsets.fromLTRB(0, 4, 0, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Today's Alerts",
+                    style: TextStyle(
+                      color: colors.onSurface,
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.8,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${alerts.length} events in the current feed',
+                    style: TextStyle(
+                      color: colors.onSurfaceDim,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            );
+
             return ListView(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
               children: focus == AlertSectionFocus.systemAlerts
-                  ? [systemSection, sectionGap, detectionSection]
-                  : [detectionSection, sectionGap, systemSection],
+                  ? [header, systemSection, sectionGap, detectionSection]
+                  : [header, detectionSection, sectionGap, systemSection],
             );
           },
         ),
@@ -197,25 +223,26 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 14),
       child: Row(
         children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(width: 8),
+          Icon(icon, color: color, size: 22),
+          const SizedBox(width: 10),
           Text(
             title,
             style: TextStyle(
               color: colors.onSurface,
-              fontSize: 15,
+              fontSize: 19,
               fontWeight: FontWeight.w700,
+              letterSpacing: -0.3,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               '$count',
@@ -241,13 +268,9 @@ class _EmptySection extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: colors.border),
-      ),
+      decoration: appCard(colors, radius: kTileRadius),
       child: Center(
         child: Text(
           message,
@@ -269,7 +292,7 @@ class _AlertTile extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(kTileRadius),
         onTap: () async {
           await _markReviewed(ref, alert);
           if (!context.mounted) return;
@@ -279,20 +302,16 @@ class _AlertTile extends ConsumerWidget {
           );
         },
         child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: colors.border),
-          ),
+          padding: const EdgeInsets.all(14),
+          decoration: appCard(colors, radius: kTileRadius),
           child: Row(
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: 46,
+                height: 46,
                 decoration: BoxDecoration(
                   color: alert.typeColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(alert.typeIcon, color: alert.typeColor, size: 22),
               ),

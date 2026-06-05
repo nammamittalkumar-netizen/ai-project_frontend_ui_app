@@ -168,15 +168,18 @@ Future<void> _pollAndNotify(FlutterLocalNotificationsPlugin plugin) async {
 
 String _titleForType(String type) {
   return switch (type) {
-    'fire_detected' => '🔥 Fire Detected',
-    'smoke_detected' => '💨 Smoke Detected',
-    'liquid_spill' => '💧 Liquid Spill',
-    'suspicious_activity' => '👁 Suspicious Activity',
-    'person_fall' => '🚨 Person Fall Detected',
+    'no_helmet' => '⛑️ No Helmet Detected',
+    'no_vest' => '🦺 No Safety Vest',
+    'no_gloves' => '🧤 No Gloves',
+    'no_goggles' => '🥽 No Goggles',
+    'no_face_mask' => '😷 No Face Mask',
+    'no_safety_shoes' => '🥾 No Safety Shoes',
+    'no_harness' => '🪢 No Harness',
+    'no_ear_protection' => '🎧 No Ear Protection',
     'camera_offline' => '📷 Camera Offline',
     'camera_online' => '📷 Camera Back Online',
     'storage_warning' => '💾 Storage Warning',
     'storage_critical' => '⚠️ Storage Critical',
-    _ => '🔔 Security Alert',
+    _ => '🦺 PPE Alert',
   };
 }

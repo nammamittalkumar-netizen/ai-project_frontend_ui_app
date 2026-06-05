@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_ui.dart';
 import '../widgets/main_overflow_menu.dart';
 
 class ReportsScreen extends ConsumerWidget {
@@ -25,17 +26,17 @@ class ReportsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: Text(
-          'Reports',
-          style: TextStyle(color: colors.onSurface, fontWeight: FontWeight.w600),
-        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         actions: [
           MainOverflowMenu(onNavigate: onNavigate, currentIndex: currentIndex),
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
         children: [
+          const _ReportsHeader(),
           _ReportCard(
             icon: Icons.videocam_rounded,
             title: 'Camera Activity Report',
@@ -56,7 +57,7 @@ class ReportsScreen extends ConsumerWidget {
           _ReportCard(
             icon: Icons.psychology_rounded,
             title: 'AI Detection Report',
-            subtitle: 'Fire, smoke, spill, fall, suspicious detections',
+            subtitle: 'PPE compliance & violation detections',
             reportKey: 'detection-report',
             isDemo: isDemo,
             ref: ref,
@@ -68,6 +69,41 @@ class ReportsScreen extends ConsumerWidget {
             reportKey: 'system-performance',
             isDemo: isDemo,
             ref: ref,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReportsHeader extends StatelessWidget {
+  const _ReportsHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 4, 0, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Reports',
+            style: TextStyle(
+              color: colors.onSurface,
+              fontSize: 32,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.8,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Generate & review summaries',
+            style: TextStyle(
+              color: colors.onSurfaceDim,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -95,36 +131,29 @@ class _ReportCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final accent = Theme.of(context).colorScheme.primary;
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 14),
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(kCardRadius),
         onTap: isDemo
             ? () => _showDemoNotice(context)
             : () => _openReport(context),
         child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: colors.border),
-          ),
+          padding: const EdgeInsets.all(16),
+          decoration: appCard(colors),
           child: Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 50,
+                height: 50,
                 decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .primary
-                      .withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(8),
+                  color: accent.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child:
-                    Icon(icon, color: Theme.of(context).colorScheme.primary),
+                child: Icon(icon, color: accent, size: 24),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,10 +162,11 @@ class _ReportCard extends StatelessWidget {
                       title,
                       style: TextStyle(
                         color: colors.onSurface,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 4),
                     Text(
                       subtitle,
                       style: TextStyle(
@@ -167,7 +197,7 @@ class _ReportCard extends StatelessWidget {
       backgroundColor: colors.surface,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (_) => _ReportSheet(
         title: title,

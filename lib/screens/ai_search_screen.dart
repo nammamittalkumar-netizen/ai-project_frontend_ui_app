@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../models/alert.dart';
 import '../providers/providers.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_ui.dart';
 import '../widgets/alert_popup.dart';
 import '../widgets/main_overflow_menu.dart';
 
@@ -51,10 +52,9 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: Text(
-          'AI Search',
-          style: TextStyle(color: colors.onSurface, fontWeight: FontWeight.w600),
-        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         actions: [
           MainOverflowMenu(
             onNavigate: widget.onNavigate,
@@ -63,35 +63,53 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(0, 0, 0, 28),
         children: [
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: colors.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: colors.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.auto_awesome_rounded, color: accentColor),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Ask anything about your video footage',
-                        style: TextStyle(
-                          color: colors.onSurface,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
+          const AppHeader(
+            title: 'AI Search',
+            subtitle: 'Ask anything about your footage',
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: appCard(colors),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [appAccentLime, appAccentBlue],
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.auto_awesome_rounded,
+                          color: appOnFilled,
+                          size: 22,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Ask anything about your video footage',
+                          style: TextStyle(
+                            color: colors.onSurface,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
                 TextField(
                   controller: _controller,
                   style: TextStyle(color: colors.onSurface),
@@ -103,40 +121,42 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
                   ),
                   onSubmitted: (_) => _search(),
                 ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _isSearching ? null : _search,
-                    icon: _isSearching
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.search_rounded),
-                    label: Text(_isSearching ? 'Searching...' : 'Search'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accentColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _isSearching ? null : _search,
+                      icon: _isSearching
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.search_rounded),
+                      label: Text(_isSearching ? 'Searching...' : 'Search'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accentColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: appButtonShape,
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 4),
           if (_query.isNotEmpty) ...[
-            const _SectionTitle(title: 'Search Results'),
+            const AppSectionTitle('Search Results'),
             if ((_results.isEmpty ? fallbackAlerts : _results).isEmpty)
-              _EmptyResult()
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _EmptyResult(),
+              )
             else
               ...(_results.isEmpty ? fallbackAlerts : _results).map(
                 (alert) => GestureDetector(
@@ -147,13 +167,9 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
                     );
                   },
                   child: Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: colors.surface,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: colors.border),
-                    ),
+                    margin: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    padding: const EdgeInsets.all(14),
+                    decoration: appCard(colors, radius: kTileRadius),
                     child: Row(
                       children: [
                         Icon(alert.typeIcon, color: alert.typeColor),
@@ -201,24 +217,28 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen> {
               ),
             const SizedBox(height: 12),
           ],
-          const _SectionTitle(title: 'Popular Searches'),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _popularSearches.map((query) {
-              return ActionChip(
-                label: Text(query),
-                avatar: const Icon(Icons.search_rounded, size: 18),
-                backgroundColor: colors.surface,
-                side: BorderSide(color: colors.border),
-                labelStyle: TextStyle(color: colors.onSurface),
-                iconTheme: IconThemeData(color: colors.onSurfaceDim),
-                onPressed: () {
-                  _controller.text = query;
-                  _search();
-                },
-              );
-            }).toList(),
+          const AppSectionTitle('Popular Searches'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: _popularSearches.map((query) {
+                return ActionChip(
+                  label: Text(query),
+                  avatar: const Icon(Icons.search_rounded, size: 18),
+                  backgroundColor: colors.surface,
+                  side: BorderSide(color: colors.border),
+                  shape: const StadiumBorder(),
+                  labelStyle: TextStyle(color: colors.onSurface),
+                  iconTheme: IconThemeData(color: colors.onSurfaceDim),
+                  onPressed: () {
+                    _controller.text = query;
+                    _search();
+                  },
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),
@@ -249,37 +269,11 @@ class _EmptyResult extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: colors.border),
-      ),
+      padding: const EdgeInsets.all(18),
+      decoration: appCard(colors, radius: kTileRadius),
       child: Text(
         'No matching alerts yet. Connect your server or use demo mode to test results.',
         style: TextStyle(color: colors.onSurfaceDim),
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String title;
-
-  const _SectionTitle({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = AppColors.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Text(
-        title,
-        style: TextStyle(
-          color: colors.onSurface,
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-        ),
       ),
     );
   }

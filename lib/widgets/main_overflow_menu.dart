@@ -22,6 +22,11 @@ class MainOverflowMenu extends StatelessWidget {
       icon: Icon(Icons.more_vert_rounded, color: colors.onSurface),
       tooltip: 'More',
       color: colors.surface,
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: colors.border),
+      ),
       onSelected: onNavigate,
       itemBuilder: (context) => [
         PopupMenuItem<int>(

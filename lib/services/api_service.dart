@@ -355,8 +355,8 @@ class ApiService {
       ...json,
       'id': id,
       'type': json['type'] ?? json['detection_type'],
-      'clip_url': json['clip_url'] ??
-          (id.isEmpty ? null : '$baseUrl/api/events/$id/video'),
+      // Video clips are disabled — alerts carry a snapshot image only.
+      'clip_url': null,
       'snapshot_url': json['snapshot_url'] ??
           (id.isEmpty ? null : '$baseUrl/api/events/$id/snapshot'),
     });

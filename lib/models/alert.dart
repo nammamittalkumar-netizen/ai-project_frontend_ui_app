@@ -1,16 +1,60 @@
 import 'package:flutter/material.dart';
 
 enum AlertType {
-  fire,
-  smoke,
-  liquidSpill,
-  suspicious,
-  fall,
+  // ── PPE violations (raise alerts) ─────────────────────────────
+  noHelmet,
+  noVest,
+  noGloves,
+  noGoggles,
+  noFaceMask,
+  noSafetyShoes,
+  noHarness,
+  noEarProtection,
+  // ── PPE compliance (tracked, informational) ───────────────────
+  helmet,
+  safetyVest,
+  gloves,
+  goggles,
+  faceMask,
+  safetyShoes,
+  harness,
+  earProtection,
+  protectiveSuit,
+  apron,
+  faceShield,
+  // ── System ────────────────────────────────────────────────────
   cameraOffline,
   cameraOnline,
   storageWarning,
   storageCritical,
 }
+
+/// PPE violation types — these are the alert-worthy detections.
+const Set<AlertType> _violationTypes = {
+  AlertType.noHelmet,
+  AlertType.noVest,
+  AlertType.noGloves,
+  AlertType.noGoggles,
+  AlertType.noFaceMask,
+  AlertType.noSafetyShoes,
+  AlertType.noHarness,
+  AlertType.noEarProtection,
+};
+
+/// PPE compliance types — tracked but not alert-worthy.
+const Set<AlertType> _complianceTypes = {
+  AlertType.helmet,
+  AlertType.safetyVest,
+  AlertType.gloves,
+  AlertType.goggles,
+  AlertType.faceMask,
+  AlertType.safetyShoes,
+  AlertType.harness,
+  AlertType.earProtection,
+  AlertType.protectiveSuit,
+  AlertType.apron,
+  AlertType.faceShield,
+};
 
 class Alert {
   final String id;
@@ -51,15 +95,49 @@ class Alert {
 
   static AlertType _parseType(String? value) {
     switch (value) {
-      case 'fire':
-        return AlertType.fire;
-      case 'smoke':
-        return AlertType.smoke;
-      case 'liquid_spill':
-        return AlertType.liquidSpill;
-      case 'fall':
-      case 'fall_down':
-        return AlertType.fall;
+      case 'no_helmet':
+        return AlertType.noHelmet;
+      case 'no_vest':
+      case 'no_safety_vest':
+        return AlertType.noVest;
+      case 'no_gloves':
+        return AlertType.noGloves;
+      case 'no_goggles':
+        return AlertType.noGoggles;
+      case 'no_face_mask':
+      case 'no_mask':
+        return AlertType.noFaceMask;
+      case 'no_safety_shoes':
+      case 'no_shoes':
+        return AlertType.noSafetyShoes;
+      case 'no_harness':
+        return AlertType.noHarness;
+      case 'no_ear_protection':
+        return AlertType.noEarProtection;
+      case 'helmet':
+        return AlertType.helmet;
+      case 'safety_vest':
+      case 'vest':
+        return AlertType.safetyVest;
+      case 'gloves':
+        return AlertType.gloves;
+      case 'goggles':
+        return AlertType.goggles;
+      case 'face_mask':
+      case 'mask':
+        return AlertType.faceMask;
+      case 'safety_shoes':
+        return AlertType.safetyShoes;
+      case 'harness':
+        return AlertType.harness;
+      case 'ear_protection':
+        return AlertType.earProtection;
+      case 'protective_suit':
+        return AlertType.protectiveSuit;
+      case 'apron':
+        return AlertType.apron;
+      case 'face_shield':
+        return AlertType.faceShield;
       case 'camera_offline':
         return AlertType.cameraOffline;
       case 'camera_online':
@@ -68,25 +146,51 @@ class Alert {
         return AlertType.storageWarning;
       case 'storage_critical':
         return AlertType.storageCritical;
-      case 'suspicious_activity':
-      case 'suspicious':
       default:
-        return AlertType.suspicious;
+        return AlertType.noHelmet;
     }
   }
 
   String get typeLabel {
     switch (type) {
-      case AlertType.fire:
-        return 'Fire Detected';
-      case AlertType.smoke:
-        return 'Smoke Detected';
-      case AlertType.liquidSpill:
-        return 'Liquid Spill';
-      case AlertType.suspicious:
-        return 'Suspicious Activity';
-      case AlertType.fall:
-        return 'Person Fall';
+      case AlertType.noHelmet:
+        return 'No Helmet';
+      case AlertType.noVest:
+        return 'No Safety Vest';
+      case AlertType.noGloves:
+        return 'No Gloves';
+      case AlertType.noGoggles:
+        return 'No Goggles';
+      case AlertType.noFaceMask:
+        return 'No Face Mask';
+      case AlertType.noSafetyShoes:
+        return 'No Safety Shoes';
+      case AlertType.noHarness:
+        return 'No Harness';
+      case AlertType.noEarProtection:
+        return 'No Ear Protection';
+      case AlertType.helmet:
+        return 'Helmet';
+      case AlertType.safetyVest:
+        return 'Safety Vest';
+      case AlertType.gloves:
+        return 'Gloves';
+      case AlertType.goggles:
+        return 'Goggles';
+      case AlertType.faceMask:
+        return 'Face Mask';
+      case AlertType.safetyShoes:
+        return 'Safety Shoes';
+      case AlertType.harness:
+        return 'Harness';
+      case AlertType.earProtection:
+        return 'Ear Protection';
+      case AlertType.protectiveSuit:
+        return 'Protective Suit';
+      case AlertType.apron:
+        return 'Apron';
+      case AlertType.faceShield:
+        return 'Face Shield';
       case AlertType.cameraOffline:
         return 'Camera Offline';
       case AlertType.cameraOnline:
@@ -100,16 +204,44 @@ class Alert {
 
   String get typeEmoji {
     switch (type) {
-      case AlertType.fire:
-        return 'Fire';
-      case AlertType.smoke:
-        return 'Smoke';
-      case AlertType.liquidSpill:
-        return 'Spill';
-      case AlertType.suspicious:
-        return 'Watch';
-      case AlertType.fall:
-        return 'Fall';
+      case AlertType.noHelmet:
+        return 'No Helmet';
+      case AlertType.noVest:
+        return 'No Vest';
+      case AlertType.noGloves:
+        return 'No Gloves';
+      case AlertType.noGoggles:
+        return 'No Goggles';
+      case AlertType.noFaceMask:
+        return 'No Mask';
+      case AlertType.noSafetyShoes:
+        return 'No Shoes';
+      case AlertType.noHarness:
+        return 'No Harness';
+      case AlertType.noEarProtection:
+        return 'No Ear Prot.';
+      case AlertType.helmet:
+        return 'Helmet';
+      case AlertType.safetyVest:
+        return 'Vest';
+      case AlertType.gloves:
+        return 'Gloves';
+      case AlertType.goggles:
+        return 'Goggles';
+      case AlertType.faceMask:
+        return 'Mask';
+      case AlertType.safetyShoes:
+        return 'Shoes';
+      case AlertType.harness:
+        return 'Harness';
+      case AlertType.earProtection:
+        return 'Ear Prot.';
+      case AlertType.protectiveSuit:
+        return 'Suit';
+      case AlertType.apron:
+        return 'Apron';
+      case AlertType.faceShield:
+        return 'Shield';
       case AlertType.cameraOffline:
         return 'Offline';
       case AlertType.cameraOnline:
@@ -124,17 +256,13 @@ class Alert {
   String get typeLabelWithEmoji => typeLabel;
 
   Color get typeColor {
+    if (_violationTypes.contains(type)) {
+      return Colors.redAccent;
+    }
+    if (_complianceTypes.contains(type)) {
+      return Colors.green;
+    }
     switch (type) {
-      case AlertType.fire:
-        return Colors.orange;
-      case AlertType.smoke:
-        return Colors.blueGrey;
-      case AlertType.liquidSpill:
-        return Colors.lightBlue;
-      case AlertType.suspicious:
-        return Colors.purpleAccent;
-      case AlertType.fall:
-        return Colors.red;
       case AlertType.cameraOffline:
         return Colors.deepOrange;
       case AlertType.cameraOnline:
@@ -143,15 +271,15 @@ class Alert {
         return Colors.amber;
       case AlertType.storageCritical:
         return Colors.redAccent;
+      default:
+        return Colors.blueGrey;
     }
   }
 
   bool get isDetection =>
-      type == AlertType.fire ||
-      type == AlertType.smoke ||
-      type == AlertType.liquidSpill ||
-      type == AlertType.suspicious ||
-      type == AlertType.fall;
+      _violationTypes.contains(type) || _complianceTypes.contains(type);
+
+  bool get isViolation => _violationTypes.contains(type);
 
   bool get isSystem => !isDetection;
 
@@ -167,27 +295,43 @@ class Alert {
       case AlertType.cameraOffline:
       case AlertType.cameraOnline:
         return 'Camera Health';
-      case AlertType.fire:
-      case AlertType.smoke:
-      case AlertType.liquidSpill:
-      case AlertType.suspicious:
-      case AlertType.fall:
+      default:
         return 'System';
     }
   }
 
   IconData get typeIcon {
     switch (type) {
-      case AlertType.fire:
-        return Icons.local_fire_department_rounded;
-      case AlertType.smoke:
-        return Icons.cloud_rounded;
-      case AlertType.liquidSpill:
-        return Icons.water_drop_rounded;
-      case AlertType.suspicious:
+      case AlertType.noHelmet:
+      case AlertType.helmet:
+        return Icons.engineering_rounded;
+      case AlertType.noVest:
+      case AlertType.safetyVest:
+        return Icons.checkroom_rounded;
+      case AlertType.noGloves:
+      case AlertType.gloves:
+        return Icons.back_hand_rounded;
+      case AlertType.noGoggles:
+      case AlertType.goggles:
         return Icons.visibility_rounded;
-      case AlertType.fall:
-        return Icons.personal_injury_rounded;
+      case AlertType.noFaceMask:
+      case AlertType.faceMask:
+        return Icons.masks_rounded;
+      case AlertType.noSafetyShoes:
+      case AlertType.safetyShoes:
+        return Icons.hiking_rounded;
+      case AlertType.noHarness:
+      case AlertType.harness:
+        return Icons.link_rounded;
+      case AlertType.noEarProtection:
+      case AlertType.earProtection:
+        return Icons.hearing_rounded;
+      case AlertType.protectiveSuit:
+        return Icons.health_and_safety_rounded;
+      case AlertType.apron:
+        return Icons.dry_cleaning_rounded;
+      case AlertType.faceShield:
+        return Icons.shield_rounded;
       case AlertType.cameraOffline:
         return Icons.videocam_off_rounded;
       case AlertType.cameraOnline:
